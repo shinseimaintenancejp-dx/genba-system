@@ -1,0 +1,72 @@
+# =============================================================================
+# Genba Management System — Docker Compose Production Override
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file overrides docker-compose.yml for production:
+# - Uses production Docker build targets (no hot-reload mounts)
+# - Reads from .env.production
+# - Restricts port exposure (DB/Redis not accessible from outside)
+# - Uses separate named volumes to avoid dev/prod data collision
+# =============================================================================
+
+services:
+  db:
+    container_name: genba_db_prod
+    env_file:
+      - .env.production
+    volumes:
+      # Separate volume name prevents dev/prod data mixing
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      # Not exposed to host in production — access only via internal network
+      []
+
+  redis:
+    container_name: genba_redis_prod
+    env_file:
+      - .env.production
+    volumes:
+      - redis_data_prod:/data
+    ports:
+      []
+
+  api:
+    container_name: genba_api_prod
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod   # Production stage — no dev tools, no hot reload
+    env_file:
+      - .env.production
+    volumes: []      # No source mount in production
+    ports:
+      []             # Nginx proxies — no direct port exposure
+
+  web:
+    container_name: genba_web_prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod   # Production build
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+    volumes: []      # No source mount
+    ports:
+      []
+
+  nginx:
+    container_name: genba_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
