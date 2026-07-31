@@ -18,17 +18,24 @@ export interface Genba {
   floor_above_ground?: number;
   floor_basement?: number;
   
+  has_daily_contract?: boolean;
+  has_periodic_contract?: boolean;
   terminated_at?: string;
   created_at: string;
   updated_at: string;
-}
 
-export interface GenbaDetail extends Genba {
-  customer: {
+  contact_ids?: string[];
+  new_contacts?: any[];
+  staff_assignments?: any[];
+  customer?: {
     id: string;
     full_name: string;
     short_name: string;
   };
+}
+
+export interface GenbaDetail extends Genba {
+  customer: NonNullable<Genba["customer"]>;
   contacts: {
     id: string;
     full_name: string;
@@ -42,7 +49,8 @@ export interface GenbaDetail extends Genba {
     role_type: string;
     staff: {
       id: string;
-      full_name: string;
+      last_name: string;
+      first_name: string;
       position?: string;
     };
   }[];

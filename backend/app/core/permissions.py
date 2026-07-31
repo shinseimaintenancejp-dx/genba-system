@@ -18,7 +18,7 @@ class Role(StrEnum):
 
     ADMIN = "ADMIN"                      # システム管理者 — Full access
     SENIOR_STAFF = "SENIOR_STAFF"        # 管理職 — View all, approve
-    INTERNAL_STAFF = "INTERNAL_STAFF"    # 社内担当者 — CRUD operations
+    INTERNAL_STAFF = "INTERNAL_STAFF"    # フロント — CRUD operations
     GENBA_WORKER = "GENBA_WORKER"        # 現場員 — View assigned genba only
     PARTNER = "PARTNER"                  # 協力会社 — View contracted genba only
     CUSTOMER = "CUSTOMER"                # 取引先 — Placeholder (future)

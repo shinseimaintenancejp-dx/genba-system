@@ -72,6 +72,18 @@ export const useUpdateCustomer = () => {
   });
 };
 
+export const useReorderCustomers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items: { id: string; display_order: number }[]) =>
+      put("/customers/reorder", { items }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.lists() });
+    },
+  });
+};
+
 // =============================================================================
 // Customer Contact Hooks
 // =============================================================================

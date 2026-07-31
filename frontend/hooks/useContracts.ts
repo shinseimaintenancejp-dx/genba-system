@@ -26,9 +26,12 @@ interface ListContractsFilters {
   service_category?: string;
   genba_id?: string;
   customer_id?: string;
+  customer_ids?: string[];
   partner_id?: string;
   search?: string;
-  [key: string]: string | number | boolean | undefined;
+  staff_id?: string;
+  periodic_month?: number;
+  [key: string]: string | string[] | number | boolean | undefined;
 }
 
 // =============================================================================
@@ -56,6 +59,7 @@ const mapContractPayloadToSnakeCase = (payload: ContractCreatePayload | Partial<
   }
   if (payload.startDate !== undefined) base.start_date = payload.startDate;
   if (payload.endDate !== undefined) base.end_date = payload.endDate;
+  if ((payload as any).status !== undefined) base.status = (payload as any).status;
   if (payload.amount !== undefined) base.amount = payload.amount;
   if (payload.hourlyRate !== undefined) base.hourly_rate = payload.hourlyRate;
   if (payload.taxType !== undefined) base.tax_type = payload.taxType;

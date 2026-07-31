@@ -1,58 +1,53 @@
-/**
- * Genba Management System — useStaff Hook.
- *
- * Wraps staff API calls with TanStack Query v5 patterns.
- */
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { get, post, put, del } from "@/lib/api";
-import { queryKeys } from "./queryKeys";
+import { components } from "@/types/api.generated";
 
-export interface Staff {
-  id: string;
-  full_name: string;
-  position?: string;
-  phone?: string;
-  email?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type Staff = components["schemas"]["StaffResponse"];
+export type CreateStaffPayload = components["schemas"]["StaffCreate"];
+export type UpdateStaffPayload = components["schemas"]["StaffUpdate"];
+export type GenbaStaffAssignmentResponse = components["schemas"]["GenbaStaffAssignmentResponse"];
+export type GenbaStaffAssignmentCreate = components["schemas"]["GenbaStaffAssignmentCreate"];
 
-export interface GenbaStaffAssignment {
-  id: string;
-  genba_id: string;
-  staff_id: string;
-  role_type: "MAIN" | "SUB";
-  assigned_at: string;
-  staff: Staff;
-}
+export const queryKeys = {
+  staff: {
+    all: ["staff"] as const,
+    lists: () => [...queryKeys.staff.all, "list"] as const,
+    list: (filters: string) => [...queryKeys.staff.lists(), { filters }] as const,
+    details: () => [...queryKeys.staff.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.staff.details(), id] as const,
+    genbaAssignments: (genbaId: string) => [...queryKeys.staff.all, "genba", genbaId] as const,
+  },
+};
 
-interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-}
+// =============================================================================
+// Basic Staff CRUD Hooks
+// =============================================================================
 
-interface ListStaffFilters {
-  page?: number;
+interface StaffListParams {
+  skip?: number;
   limit?: number;
-  search?: string;
   is_active?: boolean;
-  [key: string]: string | number | boolean | undefined;
+  search?: string;
+  role?: string;
 }
 
-// =============================================================================
-// Staff Hooks
-// =============================================================================
+interface PaginatedStaffResponse {
+  items: Staff[];
+  total: number;
+}
 
-export const useStaffList = (filters: ListStaffFilters = {}) => {
+export const useStaffList = (params?: StaffListParams) => {
   return useQuery({
-    queryKey: queryKeys.staff.list(filters),
-    queryFn: () => get<PaginatedResponse<Staff>>("/staff", { params: filters }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: queryKeys.staff.list(JSON.stringify(params || {})),
+    queryFn: () => get<PaginatedStaffResponse>("/staff", { params }),
+  });
+};
+
+export const useStaffDetail = (id: string) => {
+  return useQuery({
+    queryKey: queryKeys.staff.detail(id),
+    queryFn: () => get<Staff>(`/staff/${id}`),
+    enabled: !!id,
   });
 };
 
@@ -60,7 +55,7 @@ export const useCreateStaff = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<Staff, "id" | "is_active" | "created_at" | "updated_at">) =>
+    mutationFn: (data: CreateStaffPayload) =>
       post<Staff>("/staff", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff.lists() });
@@ -72,50 +67,77 @@ export const useUpdateStaff = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Staff> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateStaffPayload }) =>
       put<Staff>(`/staff/${id}`, data),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff.lists() });
       queryClient.invalidateQueries({ queryKey: queryKeys.staff.detail(data.id) });
     },
   });
 };
 
+export const useDeleteStaff = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => del(`/staff/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff.lists() });
+    },
+  });
+};
+
+
 // =============================================================================
 // Genba Staff Assignment Hooks
 // =============================================================================
 
-export const useGenbaStaffAssignments = (genbaId: string) => {
+export const useGenbaStaff = (genbaId: string) => {
   return useQuery({
-    queryKey: queryKeys.genba.staff(genbaId),
-    queryFn: () => get<GenbaStaffAssignment[]>(`/staff/genba/${genbaId}`),
+    queryKey: queryKeys.staff.genbaAssignments(genbaId),
+    queryFn: () => get<GenbaStaffAssignmentResponse[]>(`/genba/${genbaId}/staff`),
     enabled: !!genbaId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
-export const useAssignStaff = (genbaId: string) => {
+export const useAssignGenbaStaff = (genbaId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { staff_id: string; role_type: "MAIN" | "SUB" }) =>
-      post<GenbaStaffAssignment>(`/staff/genba/${genbaId}`, data),
+    mutationFn: (data: Omit<GenbaStaffAssignmentCreate, "genba_id">) =>
+      post<GenbaStaffAssignmentResponse>(`/genba/${genbaId}/staff`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.genba.staff(genbaId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.genba.detail(genbaId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.staff.genbaAssignments(genbaId),
+      });
     },
   });
 };
 
-export const useUnassignStaff = (genbaId: string) => {
+export const useUpdateGenbaStaffRole = (genbaId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (staffId: string) =>
-      del<void>(`/staff/genba/${genbaId}/${staffId}`),
+    mutationFn: ({ assignmentId, role_type }: { assignmentId: string; role_type: string }) =>
+      put<GenbaStaffAssignmentResponse>(`/genba/${genbaId}/staff/${assignmentId}`, { role_type }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.genba.staff(genbaId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.genba.detail(genbaId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.staff.genbaAssignments(genbaId),
+      });
     },
   });
 };
+
+export const useRemoveGenbaStaff = (genbaId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (assignmentId: string) => del(`/genba/${genbaId}/staff/${assignmentId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.staff.genbaAssignments(genbaId),
+      });
+    },
+  });
+};
+

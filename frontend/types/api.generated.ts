@@ -125,6 +125,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ユーザー一覧
+         * @description 全ユーザーを一覧表示します（管理者専用）。
+         */
+        get: operations["list_users_api_v1_auth_users_get"];
+        put?: never;
+        /**
+         * ユーザー作成
+         * @description 新しいユーザーアカウントを作成します（管理者専用）。
+         */
+        post: operations["create_user_api_v1_auth_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * ユーザー無効化
+         * @description ユーザーアカウントを無効化します（管理者専用）。
+         */
+        delete: operations["deactivate_user_api_v1_auth_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * ユーザー情報更新
+         * @description ユーザー情報を更新します（管理者専用）。
+         */
+        patch: operations["update_user_api_v1_auth_users__user_id__patch"];
+        trace?: never;
+    };
     "/api/v1/genba/{id}/entry-exit": {
         parameters: {
             query?: never;
@@ -479,6 +527,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder Customers
+         * @description Bulk update display orders.
+         */
+        put: operations["reorder_customers_api_v1_customers_reorder_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers/{id}": {
         parameters: {
             query?: never;
@@ -551,6 +619,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Positions */
+        get: operations["list_positions_api_v1_staff_positions_get"];
+        put?: never;
+        /** Create Position */
+        post: operations["create_position_api_v1_staff_positions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/positions/{pos_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Position */
+        put: operations["update_position_api_v1_staff_positions__pos_id__put"];
+        post?: never;
+        /** Delete Position */
+        delete: operations["delete_position_api_v1_staff_positions__pos_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff": {
         parameters: {
             query?: never;
@@ -593,7 +697,11 @@ export interface paths {
          */
         put: operations["update_staff_api_v1_staff__id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Staff
+         * @description Delete a staff member.
+         */
+        delete: operations["delete_staff_api_v1_staff__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -753,6 +861,26 @@ export interface paths {
          * @description Create a new partner company.
          */
         post: operations["create_partner_api_v1_partners_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partners/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder Partners
+         * @description Bulk update display orders.
+         */
+        put: operations["reorder_partners_api_v1_partners_reorder_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1704,7 +1832,7 @@ export interface components {
              * Contract Name
              * @description Contract name
              */
-            contract_name: string;
+            contract_name?: string | null;
             /**
              * Service Category
              * @description DAILY / PERIODIC / OTHER
@@ -1892,6 +2020,12 @@ export interface components {
             periodic_schedule?: components["schemas"]["PeriodicScheduleResponse"] | null;
             /** Periodic Work Contents */
             periodic_work_contents?: components["schemas"]["PeriodicWorkContentResponse"][] | null;
+            /** Genba Name */
+            genba_name?: string | null;
+            /** Customer Name */
+            customer_name?: string | null;
+            /** Partner Name */
+            partner_name?: string | null;
         };
         /**
          * ContractUpdate
@@ -1958,6 +2092,36 @@ export interface components {
             periodic_schedule?: components["schemas"]["PeriodicScheduleCreate"] | null;
             /** Periodic Work Contents */
             periodic_work_contents?: components["schemas"]["PeriodicWorkContentCreate"][] | null;
+        };
+        /**
+         * CreateUserRequest
+         * @description Request body for POST /users (ADMIN only).
+         */
+        CreateUserRequest: {
+            /** Username */
+            username: string;
+            /** Email */
+            email?: string | null;
+            /** Last Name */
+            last_name: string;
+            /** First Name */
+            first_name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Password */
+            password: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Role
+             * @default INTERNAL_STAFF
+             */
+            role: string;
+            /** Related Entity Id */
+            related_entity_id?: string | null;
         };
         /**
          * CustomerBriefResponse
@@ -2108,6 +2272,8 @@ export interface components {
             id: string;
             /** Is Active */
             is_active: boolean;
+            /** Display Order */
+            display_order: number;
             /**
              * Created At
              * Format: date-time
@@ -2157,6 +2323,8 @@ export interface components {
             id: string;
             /** Is Active */
             is_active: boolean;
+            /** Display Order */
+            display_order: number;
             /**
              * Created At
              * Format: date-time
@@ -2191,6 +2359,8 @@ export interface components {
             notes?: string | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Display Order */
+            display_order?: number | null;
         };
         /** DailyCleaningTaskContentCreate */
         DailyCleaningTaskContentCreate: {
@@ -2399,6 +2569,10 @@ export interface components {
         DataEnvelope_PeriodicWorkTypeResponse_: {
             data: components["schemas"]["PeriodicWorkTypeResponse"];
         };
+        /** DataEnvelope[PositionResponse] */
+        DataEnvelope_PositionResponse_: {
+            data: components["schemas"]["PositionResponse"];
+        };
         /** DataEnvelope[StaffResponse] */
         DataEnvelope_StaffResponse_: {
             data: components["schemas"]["StaffResponse"];
@@ -2465,6 +2639,11 @@ export interface components {
         DataEnvelope_list_PeriodicWorkTypeResponse__: {
             /** Data */
             data: components["schemas"]["PeriodicWorkTypeResponse"][];
+        };
+        /** DataEnvelope[list[PositionResponse]] */
+        DataEnvelope_list_PositionResponse__: {
+            /** Data */
+            data: components["schemas"]["PositionResponse"][];
         };
         /** DataEnvelope[list[WorkScheduleResponse]] */
         DataEnvelope_list_WorkScheduleResponse__: {
@@ -2721,6 +2900,16 @@ export interface components {
             genba_type?: string | null;
             /** Genba Type Other */
             genba_type_other?: string | null;
+            /**
+             * Has Daily Contract
+             * @default false
+             */
+            has_daily_contract: boolean;
+            /**
+             * Has Periodic Contract
+             * @default false
+             */
+            has_periodic_contract: boolean;
             /** Floor Above Ground */
             floor_above_ground?: number | null;
             /** Floor Basement */
@@ -2737,17 +2926,17 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Staff Assignments
+             * @default []
+             */
+            staff_assignments: components["schemas"]["StaffAssignmentBriefResponse"][];
             customer: components["schemas"]["CustomerBriefResponse"];
             /**
              * Contacts
              * @default []
              */
             contacts: components["schemas"]["ContactBriefResponse"][];
-            /**
-             * Staff Assignments
-             * @default []
-             */
-            staff_assignments: components["schemas"]["StaffAssignmentBriefResponse"][];
         };
         /**
          * GenbaEquipmentCreate
@@ -2862,6 +3051,16 @@ export interface components {
             genba_type?: string | null;
             /** Genba Type Other */
             genba_type_other?: string | null;
+            /**
+             * Has Daily Contract
+             * @default false
+             */
+            has_daily_contract: boolean;
+            /**
+             * Has Periodic Contract
+             * @default false
+             */
+            has_periodic_contract: boolean;
             /** Floor Above Ground */
             floor_above_ground?: number | null;
             /** Floor Basement */
@@ -2878,6 +3077,12 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Staff Assignments
+             * @default []
+             */
+            staff_assignments: components["schemas"]["StaffAssignmentBriefResponse"][];
+            customer?: components["schemas"]["CustomerBriefResponse"] | null;
         };
         /**
          * GenbaStaffAssignmentCreate
@@ -2897,7 +3102,7 @@ export interface components {
         };
         /**
          * GenbaStaffAssignmentResponse
-         * @description Response schema representing a Staff assignment on a Genba.
+         * @description Response schema representing a Genba-Staff assignment.
          */
         GenbaStaffAssignmentResponse: {
             /**
@@ -2917,12 +3122,12 @@ export interface components {
             staff_id: string;
             /** Role Type */
             role_type: string;
+            staff: components["schemas"]["StaffResponse"];
             /**
              * Assigned At
              * Format: date-time
              */
             assigned_at: string;
-            staff: components["schemas"]["StaffResponse"];
         };
         /**
          * GenbaUpdate
@@ -3440,8 +3645,16 @@ export interface components {
         PartnerCompanyCreate: {
             /** Company Name */
             company_name: string;
+            /** Short Name */
+            short_name?: string | null;
+            /** Executive */
+            executive?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
             /** Phone */
             phone?: string | null;
+            /** Mobile */
+            mobile?: string | null;
             /** Fax */
             fax?: string | null;
             /** Email */
@@ -3460,8 +3673,16 @@ export interface components {
         PartnerCompanyResponse: {
             /** Company Name */
             company_name: string;
+            /** Short Name */
+            short_name?: string | null;
+            /** Executive */
+            executive?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
             /** Phone */
             phone?: string | null;
+            /** Mobile */
+            mobile?: string | null;
             /** Fax */
             fax?: string | null;
             /** Email */
@@ -3479,6 +3700,8 @@ export interface components {
             id: string;
             /** Is Active */
             is_active: boolean;
+            /** Display Order */
+            display_order: number;
             /**
              * Created At
              * Format: date-time
@@ -3497,8 +3720,16 @@ export interface components {
         PartnerCompanyUpdate: {
             /** Company Name */
             company_name?: string | null;
+            /** Short Name */
+            short_name?: string | null;
+            /** Executive */
+            executive?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
             /** Phone */
             phone?: string | null;
+            /** Mobile */
+            mobile?: string | null;
             /** Fax */
             fax?: string | null;
             /** Email */
@@ -3511,6 +3742,8 @@ export interface components {
             notes?: string | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Display Order */
+            display_order?: number | null;
         };
         /**
          * PeriodicCleaningDetailCreate
@@ -3974,6 +4207,46 @@ export interface components {
          * @enum {string}
          */
         PhotoType: "SITE" | "WORK_REPORT";
+        /** PositionCreate */
+        PositionCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** PositionResponse */
+        PositionResponse: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PositionUpdate */
+        PositionUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
         /** QuotationCreate */
         QuotationCreate: {
             /** Title */
@@ -4119,6 +4392,21 @@ export interface components {
              */
             message: string;
         };
+        /** ReorderItem */
+        ReorderItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Display Order */
+            display_order: number;
+        };
+        /** ReorderRequest */
+        ReorderRequest: {
+            /** Items */
+            items: components["schemas"]["ReorderItem"][];
+        };
         /**
          * StaffAssignmentBriefResponse
          * @description Brief representation of a Staff assignment with role.
@@ -4164,8 +4452,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Full Name */
-            full_name: string;
+            /** Last Name */
+            last_name: string;
+            /** First Name */
+            first_name: string;
             /** Position */
             position?: string | null;
         };
@@ -4174,24 +4464,26 @@ export interface components {
          * @description Request schema for creating a new Staff member.
          */
         StaffCreate: {
-            /** Full Name */
-            full_name: string;
-            /** Position */
-            position?: string | null;
+            /** Last Name */
+            last_name: string;
+            /** First Name */
+            first_name: string;
             /** Phone */
             phone?: string | null;
             /** Email */
             email?: string | null;
+            /** Position Ids */
+            position_ids?: string[];
         };
         /**
          * StaffResponse
          * @description Response schema representing a Staff member.
          */
         StaffResponse: {
-            /** Full Name */
-            full_name: string;
-            /** Position */
-            position?: string | null;
+            /** Last Name */
+            last_name: string;
+            /** First Name */
+            first_name: string;
             /** Phone */
             phone?: string | null;
             /** Email */
@@ -4203,6 +4495,8 @@ export interface components {
             id: string;
             /** Is Active */
             is_active: boolean;
+            /** Positions */
+            positions?: components["schemas"]["PositionResponse"][];
             /**
              * Created At
              * Format: date-time
@@ -4219,16 +4513,48 @@ export interface components {
          * @description Request schema for updating a Staff member.
          */
         StaffUpdate: {
-            /** Full Name */
-            full_name?: string | null;
-            /** Position */
-            position?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /** Position Ids */
+            position_ids?: string[] | null;
             /** Phone */
             phone?: string | null;
             /** Email */
             email?: string | null;
             /** Is Active */
             is_active?: boolean | null;
+        };
+        /**
+         * UpdateUserRequest
+         * @description Request body for PATCH /auth/users/{user_id} (ADMIN only).
+         */
+        UpdateUserRequest: {
+            /** Last Name */
+            last_name?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Password */
+            password?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /**
+         * UserListResponse
+         * @description Response for GET /auth/users — paginated user list.
+         */
+        UserListResponse: {
+            /** Users */
+            users: components["schemas"]["UserResponse"][];
+            /** Total */
+            total: number;
         };
         /**
          * UserResponse
@@ -4244,8 +4570,12 @@ export interface components {
             username: string;
             /** Email */
             email: string | null;
-            /** Full Name */
-            full_name: string;
+            /** Last Name */
+            last_name: string;
+            /** First Name */
+            first_name: string;
+            /** Phone */
+            phone: string | null;
             /** Role */
             role: string;
             /** Related Entity Id */
@@ -4730,6 +5060,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_auth_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_api_v1_auth_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_user_api_v1_auth_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_auth_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5450,8 +5914,13 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string | null;
-                customer_id?: string | null;
+                customer_ids?: string[] | null;
+                staff_id?: string | null;
                 search?: string | null;
+                /** @description Lọc genba có hợp đồng định kỳ */
+                has_periodic?: boolean | null;
+                /** @description Lọc theo tháng hợp đồng định kỳ */
+                periodic_month?: number | null;
                 page?: number;
                 limit?: number;
             };
@@ -5692,6 +6161,39 @@ export interface operations {
             };
         };
     };
+    reorder_customers_api_v1_customers_reorder_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_customer_api_v1_customers__id__get: {
         parameters: {
             query?: never;
@@ -5902,11 +6404,146 @@ export interface operations {
             };
         };
     };
+    list_positions_api_v1_staff_positions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_list_PositionResponse__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_position_api_v1_staff_positions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_PositionResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_position_api_v1_staff_positions__pos_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pos_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_PositionResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_position_api_v1_staff_positions__pos_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pos_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_staff_api_v1_staff_get: {
         parameters: {
             query?: {
                 search?: string | null;
                 is_active?: boolean | null;
+                role?: string | null;
                 page?: number;
                 limit?: number;
             };
@@ -6031,6 +6668,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DataEnvelope_StaffResponse_"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_staff_api_v1_staff__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -6463,6 +7131,39 @@ export interface operations {
             };
         };
     };
+    reorder_partners_api_v1_partners_reorder_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_partner_api_v1_partners__id__get: {
         parameters: {
             query?: never;
@@ -6540,9 +7241,12 @@ export interface operations {
                 contract_type?: string | null;
                 genba_id?: string | null;
                 customer_id?: string | null;
+                customer_ids?: string[] | null;
                 partner_id?: string | null;
                 service_category?: string | null;
                 search?: string | null;
+                staff_id?: string | null;
+                periodic_month?: number | null;
                 page?: number;
                 limit?: number;
             };

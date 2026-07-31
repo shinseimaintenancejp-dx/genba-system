@@ -187,7 +187,8 @@ async def _create_test_user(
     user = UserModel(
         id=uuid.uuid4(),
         username=username,
-        full_name=f"テスト {username}",
+        last_name=username,
+        first_name="Test",
         hashed_password=hash_password(password),
         role=role,
         is_active=True,

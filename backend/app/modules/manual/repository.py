@@ -181,7 +181,8 @@ class ManualRepository:
 
         task.updated_at = datetime.now(timezone.utc)
         await db.flush()
-        await db.refresh(task, ["contract"])
+        db.expire(task, ["contents"])
+        await db.refresh(task, ["contract", "contents"])
         return task
 
     @staticmethod

@@ -121,7 +121,6 @@ class WorkerService:
             raise ConflictError("この現場員はすでにこの現場に割り当てられています。")
 
         assignment = await WorkerRepository.assign_worker(db, genba_id, worker_id)
-        await db.refresh(assignment)
         return assignment
 
     @staticmethod

@@ -115,8 +115,15 @@ class ContractCreate(ContractBase):
     partner_id: uuid.UUID | None = Field(default=None)
 
     # Sprint 5: Contract name and categorization
-    contract_name: str = Field(..., min_length=1, max_length=200, description="Contract name")
+    contract_name: str | None = Field(default=None, max_length=200, description="Contract name")
     service_category: str = Field(default="OTHER", description="DAILY / PERIODIC / OTHER")
+
+    @model_validator(mode="after")
+    def default_contract_name(self):
+        """Auto-fill contract_name from service_type when not provided."""
+        if not self.contract_name:
+            self.contract_name = self.service_type or "契約"
+        return self
 
     # Sprint 5: Schedule information (Deprecated for new inserts but kept for compatibility)
     weekly_frequency: int | None = Field(default=None, ge=1, le=7, description="Weekly work frequency")
@@ -199,6 +206,34 @@ class ContractUpdate(BaseModel):
     periodic_work_contents: list[PeriodicWorkContentCreate] | None = Field(default=None)
 
 
+# ---------------------------------------------------------------------------
+# Minimal relation sub-schemas (used only by ContractResponse)
+# ---------------------------------------------------------------------------
+# These are declared explicitly so Pydantic v2 can read them from ORM objects
+# via from_attributes=True. The corresponding ContractResponse fields are
+# marked exclude=True so they never appear in the JSON output.
+# ---------------------------------------------------------------------------
+
+class _MinimalGenba(BaseModel):
+    """Minimal Genba representation for relation name extraction."""
+    property_name: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class _MinimalCustomer(BaseModel):
+    """Minimal Customer representation for relation name extraction."""
+    short_name: str | None = None
+    full_name: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class _MinimalPartner(BaseModel):
+    """Minimal Partner representation for relation name extraction."""
+    short_name: str | None = None
+    company_name: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ContractResponse(ContractBase):
     """Response schema representing a contract."""
 
@@ -235,16 +270,47 @@ class ContractResponse(ContractBase):
     periodic_schedule: PeriodicScheduleResponse | None = None
     periodic_work_contents: list[PeriodicWorkContentResponse] | None = None
 
-    model_config = ConfigDict(from_attributes=True, strict=True)
+    # Pydantic v2 fix: Declare ORM relations explicitly so Pydantic reads them
+    # via from_attributes=True. Field(exclude=True) hides them from JSON output.
+    # Without this declaration, Pydantic v2 silently drops ORM relationship
+    # attributes and mode="after" validators cannot access them via self.__dict__.
+    genba: "_MinimalGenba | None" = Field(default=None, exclude=True)
+    customer: "_MinimalCustomer | None" = Field(default=None, exclude=True)
+    partner: "_MinimalPartner | None" = Field(default=None, exclude=True)
+
+    # Flat names extracted from relations — included in JSON response
+    genba_name: str | None = None
+    customer_name: str | None = None
+    partner_name: str | None = None
+
+    model_config = ConfigDict(from_attributes=True, strict=False)
 
     @model_validator(mode="after")
     def compute_legacy_fields(self):
-        """Auto-compute flat start/end time from nested slots for backward compatibility."""
+        """Auto-compute flat fields from nested ORM relations.
+
+        genba/customer/partner are declared as excluded fields so Pydantic v2
+        populates them from the ORM object. We then extract the name strings
+        into the flat _name fields that are included in the JSON response.
+        """
+        # Populate legacy flat time fields from first work slot
         if self.work_slots and len(self.work_slots) > 0:
             first_slot = sorted(self.work_slots, key=lambda x: x.sort_order)[0]
             self.work_start_time = first_slot.start_time
             self.work_end_time = first_slot.end_time
+
+        # Extract relation names (self.genba is now guaranteed by Pydantic field declaration)
+        if self.genba is not None:
+            self.genba_name = self.genba.property_name
+
+        if self.customer is not None:
+            self.customer_name = self.customer.short_name or self.customer.full_name
+
+        if self.partner is not None:
+            self.partner_name = self.partner.short_name or self.partner.company_name
+
         return self
+
 
 
 class ContractBriefResponse(BaseModel):

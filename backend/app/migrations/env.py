@@ -24,10 +24,8 @@ from app.core.config import settings
 # Sprint 2: auth models
 from app.modules.auth.models import UserModel  # noqa: F401
 from app.core.audit import AuditLogModel  # noqa: F401
-# Sprint 3: genba + customer
-# from app.modules.genba.models import GenbaModel
-# from app.modules.customer.models import CustomerModel
-# ...
+# Import all other models dynamically by importing main
+import app.main  # noqa: F401
 
 # =============================================================================
 # Alembic Config

@@ -77,7 +77,7 @@ export const getMeApi = async (): Promise<User> => {
 export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "システム管理者",
   SENIOR_STAFF: "管理職",
-  INTERNAL_STAFF: "社内担当者",
+  INTERNAL_STAFF: "フロント",
   GENBA_WORKER: "現場員",
   PARTNER: "協力会社",
   CUSTOMER: "取引先",

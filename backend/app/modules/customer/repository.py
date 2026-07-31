@@ -40,7 +40,7 @@ class CustomerRepository:
                 (CustomerModel.full_name.ilike(f"%{search_query}%"))
                 | (CustomerModel.short_name.ilike(f"%{search_query}%"))
             )
-        query = query.order_by(CustomerModel.full_name).offset(skip).limit(limit)
+        query = query.order_by(CustomerModel.display_order.asc(), CustomerModel.full_name.asc()).offset(skip).limit(limit)
         result = await db.execute(query)
         return result.scalars().all()
 

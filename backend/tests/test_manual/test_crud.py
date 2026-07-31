@@ -114,10 +114,14 @@ class TestManualCRUD:
             "day_of_week": "月",
             "start_time": "08:30:00",
             "floor": "1階",
-            "area_name": "エントランス",
-            "work_content": "床掃除とゴミ回収",
             "special_notes": "植木に水やり",
-            "sort_order": 10,
+            "contents": [
+                {
+                    "area_name": "エントランス",
+                    "work_content": "床掃除とゴミ回収",
+                    "sort_order": 10,
+                }
+            ],
         }
         res_create = await client.post(
             f"/api/v1/genba/{sample_genba.id}/daily-tasks",
@@ -135,18 +139,26 @@ class TestManualCRUD:
         assert res_list.status_code == 200
         tasks = res_list.json()["data"]
         assert len(tasks) == 1
-        assert tasks[0]["area_name"] == "エントランス"
+        assert tasks[0]["contents"][0]["area_name"] == "エントランス"
 
         # 3. Update Task
-        update_payload = {"area_name": "ロビー", "sort_order": 5}
+        update_payload = {
+            "contents": [
+                {
+                    "area_name": "ロビー",
+                    "work_content": "床掃除とゴミ回収",
+                    "sort_order": 5,
+                }
+            ]
+        }
         res_update = await client.put(
             f"/api/v1/genba/{sample_genba.id}/daily-tasks/{task_id}",
             json=update_payload,
             headers=staff_headers,
         )
         assert res_update.status_code == 200
-        assert res_update.json()["data"]["area_name"] == "ロビー"
-        assert res_update.json()["data"]["sort_order"] == 5
+        assert res_update.json()["data"]["contents"][0]["area_name"] == "ロビー"
+        assert res_update.json()["data"]["contents"][0]["sort_order"] == 5
 
         # 4. Delete Task
         res_delete = await client.delete(

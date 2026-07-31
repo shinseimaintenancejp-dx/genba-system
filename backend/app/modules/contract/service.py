@@ -59,9 +59,12 @@ class ContractService:
         contract_type: str | None = None,
         genba_id: uuid.UUID | None = None,
         customer_id: uuid.UUID | None = None,
+        customer_ids: list[uuid.UUID] | None = None,
         partner_id: uuid.UUID | None = None,
         search_query: str | None = None,
         service_category: str | None = None,
+        staff_id: uuid.UUID | None = None,
+        periodic_month: int | None = None,
     ) -> tuple[Sequence[ContractModel], int]:
         """List contracts with filters and pagination."""
         items = await ContractRepository.list_all(
@@ -72,9 +75,12 @@ class ContractService:
             contract_type=contract_type,
             genba_id=genba_id,
             customer_id=customer_id,
+            customer_ids=customer_ids,
             partner_id=partner_id,
             search_query=search_query,
             service_category=service_category,
+            staff_id=staff_id,
+            periodic_month=periodic_month,
         )
         total = await ContractRepository.count_all(
             db,
@@ -82,9 +88,12 @@ class ContractService:
             contract_type=contract_type,
             genba_id=genba_id,
             customer_id=customer_id,
+            customer_ids=customer_ids,
             partner_id=partner_id,
             search_query=search_query,
             service_category=service_category,
+            staff_id=staff_id,
+            periodic_month=periodic_month,
         )
         return items, total
 
@@ -151,10 +160,11 @@ class ContractService:
         # Generate internal sequence code
         internal_code = await ContractRepository.generate_next_internal_code(db)
         
-        # Check duplicate contract name
-        await self._check_duplicate_contract_name(db, data.contract_name, data.genba_id)
+        # Check duplicate contract name (contract_name is always set by validator, guard for type safety)
         contract_name = data.contract_name
-        
+        if contract_name:
+            await self._check_duplicate_contract_name(db, contract_name, data.genba_id)
+
         # Auto-calculate legacy duration
         duration = self._calculate_duration(data.work_start_time, data.work_end_time)
 
@@ -286,7 +296,13 @@ class ContractService:
             user_id=user_id,
             new_value=json.dumps(new_val, ensure_ascii=False),
         )
-        return created_contract
+
+        # Re-fetch with all relations eagerly loaded so that genba_name,
+        # customer_name, partner_name are populated before Pydantic serialization.
+        # (genba/customer/partner are set lazy="noload" on the model to prevent
+        # implicit async lazy-loads; a dedicated re-fetch is the correct pattern.)
+        full_contract = await ContractRepository.get_with_relations(db, created_contract.id)
+        return full_contract if full_contract else created_contract
 
     async def update_contract(
         self, db: AsyncSession, contract_id: uuid.UUID, data: ContractUpdate, user_id: str
@@ -445,7 +461,11 @@ class ContractService:
             old_value=json.dumps(old_val, ensure_ascii=False),
             new_value=json.dumps(new_val, ensure_ascii=False),
         )
-        return contract
+
+        # Re-fetch with all relations eagerly loaded so that genba_name,
+        # customer_name, partner_name are populated before Pydantic serialization.
+        full_contract = await ContractRepository.get_with_relations(db, contract.id)
+        return full_contract if full_contract else contract
 
     async def delete_contract(
         self, db: AsyncSession, id: uuid.UUID, user_id: str

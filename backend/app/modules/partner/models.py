@@ -24,13 +24,18 @@ class PartnerCompanyModel(Base):
         server_default=text("gen_random_uuid()"),
     )
     company_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    short_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    executive: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    postal_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    mobile: Mapped[str | None] = mapped_column(String(20), nullable=True)
     fax: Mapped[str | None] = mapped_column(String(20), nullable=True)
     email: Mapped[str | None] = mapped_column(String(100), nullable=True)
     address: Mapped[str | None] = mapped_column(String(500), nullable=True)
     contact_person: Mapped[str | None] = mapped_column(String(100), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+    display_order: Mapped[int] = mapped_column(default=0, server_default="0", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

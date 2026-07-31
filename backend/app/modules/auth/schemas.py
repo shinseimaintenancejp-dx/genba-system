@@ -54,8 +54,11 @@ class CreateUserRequest(BaseSchema):
 
     username: str = Field(min_length=3, max_length=100)
     email: EmailStr | None = None
-    full_name: str = Field(min_length=1, max_length=200)
+    last_name: str = Field(min_length=1, max_length=100)
+    first_name: str = Field(min_length=1, max_length=100)
+    phone: str | None = Field(default=None, max_length=20)
     password: str = Field(min_length=8, max_length=200)
+    is_active: bool = Field(default=True)
     role: str = Field(default="INTERNAL_STAFF")
     related_entity_id: UUID | None = None
 
@@ -81,7 +84,9 @@ class UserResponse(BaseSchema):
     id: UUID
     username: str
     email: str | None
-    full_name: str
+    last_name: str
+    first_name: str
+    phone: str | None
     role: str
     related_entity_id: UUID | None
     is_active: bool
@@ -124,7 +129,10 @@ class UserListResponse(BaseSchema):
 class UpdateUserRequest(BaseSchema):
     """Request body for PATCH /auth/users/{user_id} (ADMIN only)."""
 
-    full_name: str | None = Field(default=None, max_length=200)
+    last_name: str | None = Field(default=None, max_length=100)
+    first_name: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=20)
+    password: str | None = Field(default=None, min_length=8, max_length=200)
     email: EmailStr | None = None
     role: str | None = None
     is_active: bool | None = None

@@ -21,9 +21,12 @@ interface ListGenbaFilters {
   page?: number;
   limit?: number;
   status?: string;
-  customer_id?: string;
+  customer_ids?: string[];
+  staff_id?: string;
   search?: string;
-  [key: string]: string | number | boolean | undefined;
+  has_periodic?: boolean;
+  periodic_month?: number;
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 // =============================================================================

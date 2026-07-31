@@ -40,7 +40,7 @@ from app.core.security import (
 )
 from app.modules.auth.models import UserModel
 from app.modules.auth.repository import user_repository
-from app.modules.auth.schemas import CreateUserRequest, UserResponse
+from app.modules.auth.schemas import CreateUserRequest, UserResponse, UpdateUserRequest
 
 logger = logging.getLogger(__name__)
 
@@ -320,12 +320,59 @@ class AuthService:
         return await user_repository.create(
             session=session,
             username=data.username,
-            full_name=data.full_name,
+            last_name=data.last_name,
+            first_name=data.first_name,
+            phone=data.phone,
             hashed_password=hashed,
             role=data.role,
+            is_active=data.is_active,
             email=str(data.email) if data.email else None,
             related_entity_id=data.related_entity_id,
         )
+
+    async def update_user(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        data: UpdateUserRequest,
+    ) -> UserModel:
+        """Update an existing user account."""
+        import uuid
+        user = await user_repository.get_by_id(session, uuid.UUID(user_id))
+        if not user:
+            raise NotFoundError("ユーザー")
+            
+        if data.last_name is not None:
+            user.last_name = data.last_name
+        if data.first_name is not None:
+            user.first_name = data.first_name
+        if data.phone is not None:
+            user.phone = data.phone
+        if data.role is not None:
+            user.role = data.role
+        if data.is_active is not None:
+            user.is_active = data.is_active
+        if data.email is not None:
+            user.email = str(data.email)
+            
+        if data.password:
+            user.hashed_password = hash_password(data.password)
+
+        await session.flush()
+        return user
+
+    async def delete_user(
+        self,
+        session: AsyncSession,
+        user_id: str,
+    ) -> None:
+        """Delete an existing user account."""
+        import uuid
+        uid = uuid.UUID(user_id)
+        user = await user_repository.get_by_id(session, uid)
+        if not user:
+            raise NotFoundError("ユーザー")
+        await user_repository.delete(session, uid)
 
     # -------------------------------------------------------------------------
     # Private helpers

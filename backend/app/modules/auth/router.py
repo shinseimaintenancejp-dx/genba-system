@@ -286,30 +286,9 @@ async def update_user(
     body: UpdateUserRequest,
     current_user: CurrentUser,
 ) -> UserResponse:
-    """Update user role or active status. ADMIN only."""
+    """Update user account. ADMIN only."""
     async for session in get_db_bypass_rls():
-        from app.modules.auth.models import UserModel
-        from sqlalchemy import select, update
-        import datetime, pytz
-        result = await session.execute(select(UserModel).where(UserModel.id == user_id))
-        user = result.scalar_one_or_none()
-        if not user:
-            from app.core.exceptions import NotFoundError
-            raise NotFoundError("ユーザー")
-        values: dict = {}
-        if body.full_name is not None:
-            values["full_name"] = body.full_name
-        if body.email is not None:
-            values["email"] = str(body.email)
-        if body.role is not None:
-            values["role"] = body.role
-        if body.is_active is not None:
-            values["is_active"] = body.is_active
-        if values:
-            values["updated_at"] = datetime.datetime.now(datetime.timezone.utc)
-            await session.execute(
-                update(UserModel).where(UserModel.id == user_id).values(**values)
-            )
+        user = await auth_service.update_user(session, str(user_id), body)
         await session.commit()
         await session.refresh(user)
         logger.info(
@@ -334,14 +313,13 @@ async def deactivate_user(
     user_id: UUID,
     current_user: CurrentUser,
 ) -> None:
-    """Deactivate (soft-delete) a user. ADMIN only."""
+    """Hard delete a user. ADMIN only."""
     async for session in get_db_bypass_rls():
-        from app.modules.auth.repository import user_repository
-        await user_repository.deactivate(session, user_id)
+        await auth_service.delete_user(session, str(user_id))
         await session.commit()
         logger.info(
-            "User deactivated by admin",
-            extra={"deactivated_by": current_user["id"], "target_user": str(user_id)},
+            "User deleted by admin",
+            extra={"deleted_by": current_user["id"], "target_user": str(user_id)},
         )
         return
     raise UnauthorizedError()

@@ -22,7 +22,8 @@ class TestStaffCRUD:
         response = await client.post(
             "/api/v1/staff",
             json={
-                "full_name": "管理 太郎",
+                "last_name": "管理",
+                "first_name": "太郎",
                 "position": "マネージャー",
                 "phone": "03-1234-5678",
                 "email": "manager_test@example.com",
@@ -31,8 +32,8 @@ class TestStaffCRUD:
         )
         assert response.status_code == 201
         data = response.json()["data"]
-        assert data["full_name"] == "管理 太郎"
-        assert data["position"] == "マネージャー"
+        assert data["last_name"] == "管理"
+        assert data["first_name"] == "太郎"
         assert "id" in data
 
     async def test_create_staff_duplicate_email(
@@ -43,7 +44,8 @@ class TestStaffCRUD:
         await client.post(
             "/api/v1/staff",
             json={
-                "full_name": "管理 一郎",
+                "last_name": "管理",
+                "first_name": "一郎",
                 "email": "duplicate@example.com",
             },
             headers=admin_headers,
@@ -53,7 +55,8 @@ class TestStaffCRUD:
         response = await client.post(
             "/api/v1/staff",
             json={
-                "full_name": "管理 二郎",
+                "last_name": "管理",
+                "first_name": "二郎",
                 "email": "duplicate@example.com",
             },
             headers=admin_headers,
@@ -90,7 +93,8 @@ class TestStaffCRUD:
         staff_resp = await client.post(
             "/api/v1/staff",
             json={
-                "full_name": "担当 三郎",
+                "last_name": "担当",
+                "first_name": "三郎",
                 "email": "saburo@example.com",
             },
             headers=admin_headers,

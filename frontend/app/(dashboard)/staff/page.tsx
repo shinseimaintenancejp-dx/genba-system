@@ -10,7 +10,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 const staffSchema = z.object({
-  full_name: z.string().min(1, "氏名は必須です。").max(100, "氏名は100文字以内で入力してください。"),
+  last_name: z.string().min(1, "姓は必須です。").max(100, "姓は100文字以内で入力してください。"),
+  first_name: z.string().min(1, "名は必須です。").max(100, "名は100文字以内で入力してください。"),
   position: z.string().max(50, "役職は50文字以内で入力してください。").optional().or(z.literal("")),
   phone: z.string().max(20, "電話番号は20文字以内で入力してください。").optional().or(z.literal("")),
   email: z.string().email("無効なメールアドレスです。").optional().or(z.literal("")),
@@ -26,7 +27,7 @@ export default function StaffPage() {
 
   // Queries
   const { data, isLoading } = useStaffList({
-    page,
+    skip: (page - 1) * 10,
     limit: 10,
     search: search || undefined,
   });
@@ -42,14 +43,16 @@ export default function StaffPage() {
     setFormError("");
     if (staff) {
       form.reset({
-        full_name: staff.full_name,
-        position: staff.position || "",
+        last_name: staff.last_name,
+        first_name: staff.first_name,
+        position: staff.positions?.map((p: any) => p.name).join(", ") || "",
         phone: staff.phone || "",
         email: staff.email || "",
       });
     } else {
       form.reset({
-        full_name: "",
+        last_name: "",
+        first_name: "",
         position: "",
         phone: "",
         email: "",
@@ -91,13 +94,14 @@ export default function StaffPage() {
     {
       header: "氏名",
       accessorKey: "full_name",
+      render: (row) => `${row.last_name} ${row.first_name}`,
       sortable: true,
     },
     {
       header: "役職",
-      accessorKey: "position",
-      render: (row) => row.position || "-",
-      sortable: true,
+      accessorKey: "positions",
+      render: (row) => row.positions?.map((p: any) => p.name).join(", ") || "-",
+      sortable: false,
     },
     {
       header: "電話番号",
@@ -208,17 +212,31 @@ export default function StaffPage() {
             </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 text-sm">
-              <div className="flex flex-col gap-1">
-                <label className="font-semibold text-slate-700">氏名 <span className="text-destructive">*</span></label>
-                <input
-                  type="text"
-                  placeholder="例: 関西 太郎"
-                  {...form.register("full_name")}
-                  className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-                {form.formState.errors.full_name && (
-                  <p className="text-xs text-destructive">{form.formState.errors.full_name.message}</p>
-                )}
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="font-semibold text-slate-700">姓 <span className="text-destructive">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="例: 関西"
+                    {...form.register("last_name")}
+                    className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  {form.formState.errors.last_name && (
+                    <p className="text-xs text-destructive">{form.formState.errors.last_name.message}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="font-semibold text-slate-700">名 <span className="text-destructive">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="例: 太郎"
+                    {...form.register("first_name")}
+                    className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  {form.formState.errors.first_name && (
+                    <p className="text-xs text-destructive">{form.formState.errors.first_name.message}</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">

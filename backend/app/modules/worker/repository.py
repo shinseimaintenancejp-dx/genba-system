@@ -131,7 +131,10 @@ class WorkerRepository:
         )
         db.add(assignment)
         await db.flush()
-        return assignment
+        
+        stmt = select(GenbaWorkerModel).where(GenbaWorkerModel.id == assignment.id)
+        result = await db.execute(stmt)
+        return result.scalar_one()
 
     @staticmethod
     async def deactivate_assignment(

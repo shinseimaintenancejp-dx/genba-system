@@ -17,7 +17,8 @@ import { useContractsByCategory, useDeleteContract } from "@/hooks/useContracts"
 import { usePartners } from "@/hooks/usePartners";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { PeriodicContractForm } from "@/components/contracts/PeriodicContractForm";
-import { Loader2, Plus, Edit, Trash2, Check, X, AlertTriangle, Layers, Info, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import { mapContractToDefaultValues } from "@/lib/contractMapper";
+import { Loader2, Plus, Edit, Eye, PencilLine, Trash2, Check, X, AlertTriangle, Layers, Info, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Contract } from "@/types/contract";
 
@@ -35,44 +36,6 @@ const FISCAL_MONTHS = [
   { key: "month_feb", label: "2月" },
   { key: "month_mar", label: "3月" },
 ] as const;
-
-// Helper to map backend Contract to Frontend Form Default Values
-function mapContractToDefaultValues(contract: Contract): any {
-  return {
-    id: contract.id,
-    contractName: contract.contract_name || "",
-    contractType: contract.contract_type,
-    serviceType: contract.service_type,
-    serviceCategory: contract.service_category,
-    genbaId: contract.genba_id || "",
-    customerId: contract.customer_id || undefined,
-    partnerId: contract.partner_id || undefined,
-    startDate: contract.start_date.split("T")[0],
-    endDate: contract.end_date ? contract.end_date.split("T")[0] : undefined,
-    amount: typeof contract.amount === "string" ? parseFloat(contract.amount) : contract.amount,
-    taxType: contract.tax_type,
-    autoRenew: contract.auto_renew,
-    invoiceRequired: contract.invoice_required,
-    workContentSummary: contract.work_content_summary || undefined,
-    contractPdfUrl: contract.contract_pdf_url || undefined,
-    periodicSchedule: contract.periodic_schedule ? {
-      frequencyPerYear: contract.periodic_schedule.frequency_per_year,
-      workMonths: contract.periodic_schedule.work_months,
-      workDays: contract.periodic_schedule.work_days,
-    } : { frequencyPerYear: 1, workMonths: [], workDays: [] },
-    holidayRules: contract.holiday_rules?.map(h => ({
-      ruleType: h.rule_type,
-      action: h.action,
-    })) || [],
-    periodicWorkContents: contract.periodic_work_contents?.map(w => ({
-      id: w.id,
-      floor: w.floor,
-      area: w.area,
-      workContent: w.work_content,
-      sortOrder: w.sort_order,
-    })) || [],
-  };
-}
 
 export default function PeriodicCleaningPlansPage() {
   const params = useParams();
@@ -103,6 +66,7 @@ export default function PeriodicCleaningPlansPage() {
   // Contract form states
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
+  const [isContractReadOnly, setIsContractReadOnly] = useState(false);
   const [isDeleteContractOpen, setIsDeleteContractOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
 
@@ -153,11 +117,19 @@ export default function PeriodicCleaningPlansPage() {
   // Contract Handlers
   const handleOpenCreateContract = () => {
     setEditingContract(null);
+    setIsContractReadOnly(false);
+    setIsContractDialogOpen(true);
+  };
+
+  const handleOpenViewContract = (contract: Contract) => {
+    setEditingContract(contract);
+    setIsContractReadOnly(true);
     setIsContractDialogOpen(true);
   };
 
   const handleOpenEditContract = (contract: Contract) => {
     setEditingContract(contract);
+    setIsContractReadOnly(false);
     setIsContractDialogOpen(true);
   };
 
@@ -425,11 +397,12 @@ export default function PeriodicCleaningPlansPage() {
                       {canEdit && (
                         <div className="flex items-center gap-1 mr-2">
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleOpenEditContract(contract); }}
-                            className="p-1.5 rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-sm"
-                            aria-label="Edit Contract"
+                            onClick={(e) => { e.stopPropagation(); handleOpenViewContract(contract); }}
+                            className="p-1.5 rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-blue-50 hover:text-[#1E60F2] transition-colors shadow-sm"
+                            title="詳細"
+                            aria-label="View Contract"
                           >
-                            <Edit className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleOpenDeleteContract(contract); }}
@@ -506,14 +479,26 @@ export default function PeriodicCleaningPlansPage() {
       <Dialog.Root open={isContractDialogOpen} onOpenChange={(open) => { if (!open) setIsContractDialogOpen(false); }}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-2xl focus:outline-none animate-in fade-in-50 zoom-in-95 max-h-[95vh] overflow-y-auto">
-            <div className="flex items-start justify-between mb-6 border-b border-slate-200 pb-4 sticky top-0 bg-slate-50 z-10">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-slate-50 shadow-2xl focus:outline-none animate-in fade-in-50 zoom-in-95 flex flex-col h-[90vh] max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex items-start justify-between p-6 border-b border-slate-200 bg-slate-50 z-10">
               <div>
-                <Dialog.Title className="text-2xl font-bold text-slate-900">
-                  {editingContract ? "定期契約の編集" : "定期契約を追加"}
-                </Dialog.Title>
+                <div className="flex items-center gap-3">
+                  <Dialog.Title className="text-2xl font-bold text-slate-900">
+                    {isContractReadOnly ? "定期契約詳細" : editingContract ? "定期契約の編集" : "定期契約を追加"}
+                  </Dialog.Title>
+                  {editingContract && isContractReadOnly && canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setIsContractReadOnly(false)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1E60F2] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 shadow-sm"
+                    >
+                      <PencilLine className="h-3.5 w-3.5" />
+                      <span>編集する</span>
+                    </button>
+                  )}
+                </div>
                 <Dialog.Description className="text-sm text-slate-500 mt-1">
-                  必要な項目を入力して保存してください。
+                  {isContractReadOnly ? "契約の登録内容を確認できます。" : "必要な項目を入力して保存してください。"}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -523,12 +508,13 @@ export default function PeriodicCleaningPlansPage() {
               </Dialog.Close>
             </div>
             
-            <div className="mt-4">
+            <div className="flex-1 overflow-hidden flex flex-col">
               <PeriodicContractForm
                 genbaId={genbaId}
                 defaultValues={editingContract ? mapContractToDefaultValues(editingContract) : undefined}
                 onSuccess={() => setIsContractDialogOpen(false)}
                 onCancel={() => setIsContractDialogOpen(false)}
+                readOnly={isContractReadOnly}
               />
             </div>
           </Dialog.Content>
@@ -565,12 +551,12 @@ export default function PeriodicCleaningPlansPage() {
       <Dialog.Root open={isPlanOpen} onOpenChange={(open) => !open && resetPlanForm() || setIsPlanOpen(open)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex justify-between items-start p-6 border-b border-slate-100 bg-white z-10">
               <Dialog.Title className="text-lg font-bold text-slate-900">{editingPlan ? "定期清掃計画を編集" : "定期清掃計画を新規追加"}</Dialog.Title>
               <Dialog.Close className="p-1 text-slate-400 hover:bg-slate-100 rounded-lg"><X className="h-5 w-5" /></Dialog.Close>
             </div>
-            <form onSubmit={handleSavePlan} className="flex flex-col gap-4">
+            <form onSubmit={handleSavePlan} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700">実施体制</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -622,12 +608,12 @@ export default function PeriodicCleaningPlansPage() {
       <Dialog.Root open={isDetailOpen} onOpenChange={(open) => !open && resetDetailForm() || setIsDetailOpen(open)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex justify-between items-start p-6 border-b border-slate-100 bg-white z-10">
               <Dialog.Title className="text-lg font-bold text-slate-900">{editingDetail ? "仕様詳細を編集" : "仕様詳細を追加"}</Dialog.Title>
               <Dialog.Close className="p-1 text-slate-400 hover:bg-slate-100 rounded-lg"><X className="h-5 w-5" /></Dialog.Close>
             </div>
-            <form onSubmit={handleSaveDetail} className="flex flex-col gap-4">
+            <form onSubmit={handleSaveDetail} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-slate-700">対象場所 <span className="text-red-500">*</span></label>

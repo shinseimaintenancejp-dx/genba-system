@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useGenbaDetail } from "@/hooks/useGenba";
 import { getRoleLabel } from "@/lib/auth";
 import { Loader2, ArrowLeft, Building2 } from "lucide-react";
@@ -17,6 +17,7 @@ export default function GenbaDetailLayout({
 }) {
   const params = useParams();
   const pathname = usePathname();
+  const router = useRouter();
   const id = params.id as string;
 
   const { data: genba, isLoading, error } = useGenbaDetail(id);
@@ -50,6 +51,16 @@ export default function GenbaDetailLayout({
     tabs.push({ name: "メモ", path: `/genba/${id}/memos` });
   }
 
+  const handleBackToGenbaList = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const savedParams = typeof window !== "undefined" ? sessionStorage.getItem("genba_list_params") : null;
+    if (savedParams) {
+      router.push(`/genba?${savedParams}`);
+    } else {
+      router.push("/genba");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -65,6 +76,7 @@ export default function GenbaDetailLayout({
         <p className="text-sm text-red-600 mt-2">現場データが見つかりませんでした。</p>
         <Link
           href="/genba"
+          onClick={handleBackToGenbaList}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 mt-4"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -81,6 +93,7 @@ export default function GenbaDetailLayout({
         <div>
           <Link
             href="/genba"
+            onClick={handleBackToGenbaList}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

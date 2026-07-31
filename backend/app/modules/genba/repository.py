@@ -5,8 +5,9 @@ Data access object for worksites (genba).
 """
 
 import uuid
-from typing import Sequence
-from sqlalchemy import select, func, delete, insert
+from collections.abc import Sequence
+
+from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.genba.models import GenbaModel, GenbaStaffAssignmentModel, customer_contact_genba
@@ -18,10 +19,13 @@ class GenbaRepository:
     @staticmethod
     async def get_by_id(db: AsyncSession, genba_id: uuid.UUID) -> GenbaModel | None:
         """Retrieve a Genba by ID with its customer."""
-        from sqlalchemy.orm import joinedload
+        from sqlalchemy.orm import joinedload, selectinload
         result = await db.execute(
             select(GenbaModel)
-            .options(joinedload(GenbaModel.customer))
+            .options(
+                joinedload(GenbaModel.customer),
+                selectinload(GenbaModel.staff_assignments),
+            )
             .where(GenbaModel.id == genba_id)
         )
         return result.scalar_one_or_none()
@@ -32,8 +36,11 @@ class GenbaRepository:
         skip: int = 0,
         limit: int = 100,
         status: str | None = None,
-        customer_id: uuid.UUID | None = None,
+        customer_ids: list[uuid.UUID] | None = None,
+        staff_id: str | None = None,
         search_query: str | None = None,
+        has_periodic: bool | None = None,
+        periodic_month: int | None = None,
     ) -> Sequence[GenbaModel]:
         """
         List all Genbas with filters and pagination.
@@ -41,16 +48,52 @@ class GenbaRepository:
         PostgreSQL Row-Level Security automatically applies constraints
         to filter the returned records based on the user's role.
         """
-        query = select(GenbaModel)
+        from sqlalchemy.orm import selectinload
+        query = select(GenbaModel).options(selectinload(GenbaModel.customer))
         if status:
             query = query.where(GenbaModel.status == status)
-        if customer_id:
-            query = query.where(GenbaModel.customer_id == customer_id)
+        if customer_ids:
+            query = query.where(GenbaModel.customer_id.in_(customer_ids))
+        if staff_id == "UNASSIGNED" or staff_id == "unassigned":
+            query = query.outerjoin(
+                GenbaStaffAssignmentModel, GenbaStaffAssignmentModel.genba_id == GenbaModel.id
+            ).where(GenbaStaffAssignmentModel.id == None)
+        elif staff_id:
+            try:
+                s_uuid = uuid.UUID(staff_id)
+                query = query.join(
+                    GenbaStaffAssignmentModel, GenbaStaffAssignmentModel.genba_id == GenbaModel.id
+                ).where(GenbaStaffAssignmentModel.staff_id == s_uuid)
+            except ValueError:
+                pass
         if search_query:
             query = query.where(
                 (GenbaModel.property_name.ilike(f"%{search_query}%"))
                 | (GenbaModel.address.ilike(f"%{search_query}%"))
             )
+        
+        if has_periodic or periodic_month is not None:
+            from app.modules.schedule.models import PeriodicCleaningPlanModel
+            if periodic_month is not None:
+                month_col = {
+                    1: PeriodicCleaningPlanModel.month_jan,
+                    2: PeriodicCleaningPlanModel.month_feb,
+                    3: PeriodicCleaningPlanModel.month_mar,
+                    4: PeriodicCleaningPlanModel.month_apr,
+                    5: PeriodicCleaningPlanModel.month_may,
+                    6: PeriodicCleaningPlanModel.month_jun,
+                    7: PeriodicCleaningPlanModel.month_jul,
+                    8: PeriodicCleaningPlanModel.month_aug,
+                    9: PeriodicCleaningPlanModel.month_sep,
+                    10: PeriodicCleaningPlanModel.month_oct,
+                    11: PeriodicCleaningPlanModel.month_nov,
+                    12: PeriodicCleaningPlanModel.month_dec,
+                }.get(periodic_month)
+                if month_col is not None:
+                    query = query.where(GenbaModel.id.in_(select(PeriodicCleaningPlanModel.genba_id).where(month_col == True)))
+            else:
+                query = query.where(GenbaModel.id.in_(select(PeriodicCleaningPlanModel.genba_id)))
+
         query = query.order_by(GenbaModel.property_name).offset(skip).limit(limit)
         result = await db.execute(query)
         return result.scalars().all()
@@ -59,20 +102,58 @@ class GenbaRepository:
     async def count_all(
         db: AsyncSession,
         status: str | None = None,
-        customer_id: uuid.UUID | None = None,
+        customer_ids: list[uuid.UUID] | None = None,
+        staff_id: str | None = None,
         search_query: str | None = None,
+        has_periodic: bool | None = None,
+        periodic_month: int | None = None,
     ) -> int:
         """Count total Genbas matching criteria."""
         query = select(func.count()).select_from(GenbaModel)
         if status:
             query = query.where(GenbaModel.status == status)
-        if customer_id:
-            query = query.where(GenbaModel.customer_id == customer_id)
+        if customer_ids:
+            query = query.where(GenbaModel.customer_id.in_(customer_ids))
+        if staff_id == "UNASSIGNED" or staff_id == "unassigned":
+            query = query.outerjoin(
+                GenbaStaffAssignmentModel, GenbaStaffAssignmentModel.genba_id == GenbaModel.id
+            ).where(GenbaStaffAssignmentModel.id == None)
+        elif staff_id:
+            try:
+                s_uuid = uuid.UUID(staff_id)
+                query = query.join(
+                    GenbaStaffAssignmentModel, GenbaStaffAssignmentModel.genba_id == GenbaModel.id
+                ).where(GenbaStaffAssignmentModel.staff_id == s_uuid)
+            except ValueError:
+                pass
         if search_query:
             query = query.where(
                 (GenbaModel.property_name.ilike(f"%{search_query}%"))
                 | (GenbaModel.address.ilike(f"%{search_query}%"))
             )
+
+        if has_periodic or periodic_month is not None:
+            from app.modules.schedule.models import PeriodicCleaningPlanModel
+            if periodic_month is not None:
+                month_col = {
+                    1: PeriodicCleaningPlanModel.month_jan,
+                    2: PeriodicCleaningPlanModel.month_feb,
+                    3: PeriodicCleaningPlanModel.month_mar,
+                    4: PeriodicCleaningPlanModel.month_apr,
+                    5: PeriodicCleaningPlanModel.month_may,
+                    6: PeriodicCleaningPlanModel.month_jun,
+                    7: PeriodicCleaningPlanModel.month_jul,
+                    8: PeriodicCleaningPlanModel.month_aug,
+                    9: PeriodicCleaningPlanModel.month_sep,
+                    10: PeriodicCleaningPlanModel.month_oct,
+                    11: PeriodicCleaningPlanModel.month_nov,
+                    12: PeriodicCleaningPlanModel.month_dec,
+                }.get(periodic_month)
+                if month_col is not None:
+                    query = query.where(GenbaModel.id.in_(select(PeriodicCleaningPlanModel.genba_id).where(month_col == True)))
+            else:
+                query = query.where(GenbaModel.id.in_(select(PeriodicCleaningPlanModel.genba_id)))
+
         result = await db.execute(query)
         return result.scalar() or 0
 

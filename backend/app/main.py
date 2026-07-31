@@ -71,6 +71,7 @@ from app.modules.schedule.models import (  # noqa: F401
     WorkScheduleModel,
 )
 from app.modules.staff.models import StaffModel  # noqa: F401
+from app.modules.staff.models_position import PositionModel  # noqa: F401
 from app.modules.worker.models import WorkerModel  # noqa: F401
 
 
@@ -260,8 +261,9 @@ from fastapi.responses import JSONResponse
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     import logging
+    from fastapi.encoders import jsonable_encoder
     logger = logging.getLogger(__name__)
     body = await request.body()
     logger.error(f"Validation Error: {exc.errors()}")
     logger.error(f"Body: {body.decode()}")
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})

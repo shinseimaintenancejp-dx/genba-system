@@ -6,16 +6,27 @@ and assignment models for staff and workers.
 """
 
 import uuid
-from datetime import date, datetime, timezone
-from typing import Optional
-from typing import List
+from datetime import UTC, date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, SmallInteger, String, Table, Text, text, Column
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    SmallInteger,
+    String,
+    Table,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-
+from app.modules.customer.models import CustomerModel, CustomerContactModel
+from app.modules.staff.models import StaffModel
+from app.modules.worker.models import WorkerModel
 
 # =============================================================================
 # Association Tables
@@ -103,7 +114,7 @@ class GenbaModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=text("NOW()"),
-        onupdate=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -111,20 +122,21 @@ class GenbaModel(Base):
     customer: Mapped["CustomerModel"] = relationship(
         "CustomerModel",
         back_populates="genbas",
+        lazy="selectin",
     )
-    contacts: Mapped[List["CustomerContactModel"]] = relationship(
+    contacts: Mapped[list["CustomerContactModel"]] = relationship(
         "CustomerContactModel",
         secondary=customer_contact_genba,
         back_populates="genbas",
         lazy="selectin",
     )
-    staff_assignments: Mapped[List["GenbaStaffAssignmentModel"]] = relationship(
+    staff_assignments: Mapped[list["GenbaStaffAssignmentModel"]] = relationship(
         "GenbaStaffAssignmentModel",
         back_populates="genba",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    worker_assignments: Mapped[List["GenbaWorkerModel"]] = relationship(
+    worker_assignments: Mapped[list["GenbaWorkerModel"]] = relationship(
         "GenbaWorkerModel",
         back_populates="genba",
         cascade="all, delete-orphan",

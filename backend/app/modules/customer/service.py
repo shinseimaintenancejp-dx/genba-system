@@ -18,6 +18,7 @@ from app.modules.customer.schemas import (
     CustomerUpdate,
     CustomerContactCreate,
     CustomerContactUpdate,
+    ReorderRequest,
 )
 
 
@@ -126,6 +127,25 @@ class CustomerService:
             new_value=json.dumps(new_val, ensure_ascii=False),
         )
         return customer
+
+    @staticmethod
+    async def reorder_customers(db: AsyncSession, data: "ReorderRequest", user_id: str) -> None:
+        """Bulk update display orders for customers."""
+        from sqlalchemy import update
+        
+        for item in data.items:
+            await db.execute(
+                update(CustomerModel)
+                .where(CustomerModel.id == item.id)
+                .values(display_order=item.display_order)
+            )
+            
+        await audit_service.log(
+            session=db,
+            action="UPDATE",
+            entity_type="customer",
+            user_id=user_id,
+        )
 
     # =============================================================================
     # Customer Contact Operations

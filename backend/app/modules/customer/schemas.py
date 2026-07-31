@@ -89,6 +89,7 @@ class CustomerUpdate(BaseModel):
     address: str | None = Field(default=None, max_length=500)
     notes: str | None = Field(default=None)
     is_active: bool | None = Field(default=None)
+    display_order: int | None = Field(default=None)
 
 
 class CustomerResponse(CustomerBase):
@@ -96,6 +97,7 @@ class CustomerResponse(CustomerBase):
 
     id: uuid.UUID
     is_active: bool
+    display_order: int
     created_at: datetime
     updated_at: datetime
 
@@ -124,3 +126,15 @@ class CustomerDetailResponse(CustomerResponse):
     genbas: list[GenbaBriefResponse] = []
 
     model_config = ConfigDict(from_attributes=True, strict=True)
+
+
+# =============================================================================
+# Bulk Reorder Schemas
+# =============================================================================
+
+class ReorderItem(BaseModel):
+    id: uuid.UUID
+    display_order: int
+
+class ReorderRequest(BaseModel):
+    items: list[ReorderItem]

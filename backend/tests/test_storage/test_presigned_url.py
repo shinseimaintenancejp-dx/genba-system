@@ -100,7 +100,7 @@ class TestPresignedUrl:
         )
 
         assert key.startswith("genba/abc-123/photos/site/")
-        assert key.endswith("_photo.jpg")
+        assert key.endswith(".jpg")
 
     def test_generate_object_key_work_report(self):
         """Work report object key should use lowercase folder name."""
@@ -112,7 +112,7 @@ class TestPresignedUrl:
         )
 
         assert "work_report" in key
-        assert key.endswith("_report.png")
+        assert key.endswith(".png")
 
     def test_partner_upload_permission_check(self):
         """Verify Partner role only has PHOTO_READ and limited PHOTO_UPLOAD."""

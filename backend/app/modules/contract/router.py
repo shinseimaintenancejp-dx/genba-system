@@ -6,7 +6,7 @@ REST API routes for contract management.
 
 import uuid
 from typing import Annotated, Generic, TypeVar
-from fastapi import APIRouter, Depends, status, UploadFile, File
+from fastapi import APIRouter, Depends, status, UploadFile, File, Query
 from pydantic import BaseModel
 import os
 
@@ -44,9 +44,12 @@ async def list_contracts(
     contract_type: str | None = None,
     genba_id: uuid.UUID | None = None,
     customer_id: uuid.UUID | None = None,
+    customer_ids: list[uuid.UUID] | None = Query(default=None),
     partner_id: uuid.UUID | None = None,
     service_category: str | None = None,
     search: str | None = None,
+    staff_id: uuid.UUID | None = Query(default=None),
+    periodic_month: int | None = Query(default=None),
 ) -> PaginatedResponse[ContractResponse]:
     """List all contracts with filters and pagination."""
     items, total = await contract_service.list_contracts(
@@ -57,9 +60,12 @@ async def list_contracts(
         contract_type=contract_type,
         genba_id=genba_id,
         customer_id=customer_id,
+        customer_ids=customer_ids,
         partner_id=partner_id,
         service_category=service_category,
         search_query=search,
+        staff_id=staff_id,
+        periodic_month=periodic_month,
     )
     response_items = [ContractResponse.model_validate(item) for item in items]
     return build_paginated_response(response_items, total, pagination)

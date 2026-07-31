@@ -1,7 +1,7 @@
 """
 Genba Management System — Staff Module: Router.
 
-REST API routes for staff management and genba assignments.
+REST API routes for staff management, positions, and genba assignments.
 """
 
 import uuid
@@ -12,13 +12,16 @@ from pydantic import BaseModel
 from app.core.dependencies import DbSession, CurrentUser, require_permission
 from app.core.pagination import PaginationParams, PaginatedResponse, build_paginated_response
 from app.core.permissions import Permission
-from app.modules.staff.service import StaffService
+from app.modules.staff.service import StaffService, PositionService
 from app.modules.staff.schemas import (
     StaffCreate,
     StaffUpdate,
     StaffResponse,
     GenbaStaffAssignmentCreate,
     GenbaStaffAssignmentResponse,
+    PositionCreate,
+    PositionUpdate,
+    PositionResponse,
 )
 
 T = TypeVar("T")
@@ -29,6 +32,54 @@ class DataEnvelope(BaseModel, Generic[T]):
 
 
 router = APIRouter()
+
+
+# =============================================================================
+# Position Endpoints (Must be declared BEFORE /{id} to prevent path collision)
+# =============================================================================
+
+@router.get(
+    "/positions",
+    response_model=DataEnvelope[list[PositionResponse]],
+    dependencies=[Depends(require_permission(Permission.STAFF_READ))],
+)
+async def list_positions(db: DbSession) -> DataEnvelope[list[PositionResponse]]:
+    items = await PositionService.list_positions(db)
+    return DataEnvelope(data=[PositionResponse.model_validate(item) for item in items])
+
+
+@router.post(
+    "/positions",
+    response_model=DataEnvelope[PositionResponse],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission(Permission.STAFF_WRITE))],
+)
+async def create_position(
+    db: DbSession, data: PositionCreate
+) -> DataEnvelope[PositionResponse]:
+    pos = await PositionService.create_position(db, data)
+    return DataEnvelope(data=PositionResponse.model_validate(pos))
+
+
+@router.put(
+    "/positions/{pos_id}",
+    response_model=DataEnvelope[PositionResponse],
+    dependencies=[Depends(require_permission(Permission.STAFF_WRITE))],
+)
+async def update_position(
+    db: DbSession, pos_id: uuid.UUID, data: PositionUpdate
+) -> DataEnvelope[PositionResponse]:
+    pos = await PositionService.update_position(db, pos_id, data)
+    return DataEnvelope(data=PositionResponse.model_validate(pos))
+
+
+@router.delete(
+    "/positions/{pos_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission(Permission.STAFF_WRITE))],
+)
+async def delete_position(db: DbSession, pos_id: uuid.UUID) -> None:
+    await PositionService.delete_position(db, pos_id)
 
 
 # =============================================================================
@@ -45,6 +96,7 @@ async def list_staff(
     pagination: Annotated[PaginationParams, Depends()],
     search: str | None = None,
     is_active: bool | None = None,
+    role: str | None = None,
 ) -> PaginatedResponse[StaffResponse]:
     """List all staff with filters and pagination."""
     items, total = await StaffService.list_staff(
@@ -53,6 +105,7 @@ async def list_staff(
         limit=pagination.limit,
         is_active=is_active,
         search_query=search,
+        role=role,
     )
     return build_paginated_response(
         [StaffResponse.model_validate(item) for item in items],
@@ -105,6 +158,19 @@ async def update_staff(
     """Update details of a staff member."""
     staff = await StaffService.update_staff(db, id, data, current_user["id"])
     return DataEnvelope(data=StaffResponse.model_validate(staff))
+
+
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission(Permission.STAFF_WRITE))],
+)
+async def delete_staff(
+    db: DbSession,
+    id: uuid.UUID,
+) -> None:
+    """Delete a staff member."""
+    await StaffService.delete_staff(db, id)
 
 
 # =============================================================================
@@ -168,3 +234,4 @@ async def unassign_staff_from_genba(
         staff_id=staff_id,
         current_user_id=current_user["id"],
     )
+

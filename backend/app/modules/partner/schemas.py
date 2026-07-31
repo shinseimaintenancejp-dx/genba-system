@@ -13,7 +13,11 @@ class PartnerCompanyBase(BaseModel):
     """Base partner company schema containing shared attributes."""
 
     company_name: str = Field(min_length=1, max_length=200)
+    short_name: str | None = Field(default=None, max_length=100)
+    executive: str | None = Field(default=None, max_length=100)
+    postal_code: str | None = Field(default=None, max_length=20)
     phone: str | None = Field(default=None, max_length=20)
+    mobile: str | None = Field(default=None, max_length=20)
     fax: str | None = Field(default=None, max_length=20)
     email: EmailStr | None = Field(default=None, max_length=100)
     address: str | None = Field(default=None, max_length=500)
@@ -31,13 +35,18 @@ class PartnerCompanyUpdate(BaseModel):
     """Request schema for updating an existing partner company."""
 
     company_name: str | None = Field(default=None, min_length=1, max_length=200)
+    short_name: str | None = Field(default=None, max_length=100)
+    executive: str | None = Field(default=None, max_length=100)
+    postal_code: str | None = Field(default=None, max_length=20)
     phone: str | None = Field(default=None, max_length=20)
+    mobile: str | None = Field(default=None, max_length=20)
     fax: str | None = Field(default=None, max_length=20)
     email: EmailStr | None = Field(default=None, max_length=100)
     address: str | None = Field(default=None, max_length=500)
     contact_person: str | None = Field(default=None, max_length=100)
     notes: str | None = Field(default=None)
     is_active: bool | None = Field(default=None)
+    display_order: int | None = Field(default=None)
 
 
 class PartnerCompanyResponse(PartnerCompanyBase):
@@ -45,7 +54,20 @@ class PartnerCompanyResponse(PartnerCompanyBase):
 
     id: uuid.UUID
     is_active: bool
+    display_order: int
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True, strict=True)
+
+
+# =============================================================================
+# Bulk Reorder Schemas
+# =============================================================================
+
+class ReorderItem(BaseModel):
+    id: uuid.UUID
+    display_order: int
+
+class ReorderRequest(BaseModel):
+    items: list[ReorderItem]

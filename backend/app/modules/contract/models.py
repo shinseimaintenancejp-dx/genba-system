@@ -5,11 +5,15 @@ Genba Management System — Contract Module: SQLAlchemy Models.
 import uuid
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, Date, DateTime, Numeric, ForeignKey, SmallInteger, Integer, String, Text, Time, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.modules.genba.models import GenbaModel
+from app.modules.customer.models import CustomerModel
+from app.modules.partner.models import PartnerCompanyModel
 
 
 class ContractModel(Base):
@@ -91,6 +95,26 @@ class ContractModel(Base):
         server_default=text("NOW()"),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
+    )
+
+    # Relationships to parent entities (viewonly=True and noload to avoid implicit async lazy-loads)
+    genba: Mapped["GenbaModel | None"] = relationship(
+        "GenbaModel",
+        lazy="noload",
+        viewonly=True,
+        primaryjoin="ContractModel.genba_id == GenbaModel.id",
+    )
+    customer: Mapped["CustomerModel | None"] = relationship(
+        "CustomerModel",
+        lazy="noload",
+        viewonly=True,
+        primaryjoin="ContractModel.customer_id == CustomerModel.id",
+    )
+    partner: Mapped["PartnerCompanyModel | None"] = relationship(
+        "PartnerCompanyModel",
+        lazy="noload",
+        viewonly=True,
+        primaryjoin="ContractModel.partner_id == PartnerCompanyModel.id",
     )
 
     # Relationships to nested models

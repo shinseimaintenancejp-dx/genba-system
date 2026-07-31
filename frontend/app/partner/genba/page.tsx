@@ -115,7 +115,7 @@ export default function PartnerGenbaListPage() {
             }}
             className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
           >
-            <option value="">すべてのステータス</option>
+            <option value="">すべて</option>
             <option value="ACTIVE">稼働中 (ACTIVE)</option>
             <option value="TERMINATED">管理終了 (TERMINATED)</option>
           </select>

@@ -64,6 +64,9 @@ export interface Contract {
   genba_id: string;
   customer_id?: string;
   partner_id?: string;
+  genba_name?: string;
+  customer_name?: string;
+  partner_name?: string;
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -151,6 +154,7 @@ export interface BaseContractCreatePayload {
   invoiceRequired: boolean;
   
   // Sprint 11 Common fields
+  status?: string;
   contractPdfUrl?: string;
   workContentSummary?: string;
   weeklyFrequency?: number;

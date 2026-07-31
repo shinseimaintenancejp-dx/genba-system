@@ -62,9 +62,12 @@ class UserRepository:
         self,
         session: AsyncSession,
         username: str,
-        full_name: str,
+        last_name: str,
+        first_name: str,
+        phone: str | None,
         hashed_password: str,
         role: str,
+        is_active: bool = True,
         email: str | None = None,
         related_entity_id: uuid.UUID | None = None,
     ) -> UserModel:
@@ -86,11 +89,13 @@ class UserRepository:
         user = UserModel(
             username=username,
             email=email,
-            full_name=full_name,
+            last_name=last_name,
+            first_name=first_name,
+            phone=phone,
             hashed_password=hashed_password,
             role=role,
             related_entity_id=related_entity_id,
-            is_active=True,
+            is_active=is_active,
         )
         session.add(user)
         await session.flush()  # Get the generated ID without committing
@@ -136,6 +141,17 @@ class UserRepository:
             update(UserModel)
             .where(UserModel.id == user_id)
             .values(is_active=False, updated_at=datetime.now(timezone.utc))
+        )
+
+    async def delete(
+        self,
+        session: AsyncSession,
+        user_id: uuid.UUID,
+    ) -> None:
+        """Delete a user account."""
+        from sqlalchemy import delete
+        await session.execute(
+            delete(UserModel).where(UserModel.id == user_id)
         )
 
 

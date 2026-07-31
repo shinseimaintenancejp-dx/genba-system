@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import { 
-  useGenbaStaffAssignments, 
-  useAssignStaff, 
-  useUnassignStaff,
+  useGenbaStaff as useGenbaStaffAssignments, 
+  useAssignGenbaStaff as useAssignStaff, 
+  useRemoveGenbaStaff as useUnassignStaff,
   useStaffList 
 } from "@/hooks/useStaff";
 import { 
@@ -118,7 +118,7 @@ export default function GenbaWorkersPage() {
                 <option value="">担当者を選択...</option>
                 {availableStaff?.items.map((st) => (
                   <option key={st.id} value={st.id}>
-                    {st.full_name} ({st.position || "役職なし"})
+                    {st.last_name} {st.first_name} ({st.positions?.map((p: any) => p.name).join(", ") || "役職なし"})
                   </option>
                 ))}
               </select>
@@ -179,7 +179,7 @@ export default function GenbaWorkersPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-slate-800">
-                          {assign.staff.full_name}
+                          {assign.staff.last_name} {assign.staff.first_name}
                         </span>
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -191,8 +191,8 @@ export default function GenbaWorkersPage() {
                           {assign.role_type === "MAIN" ? "代表" : "サブ"}
                         </span>
                       </div>
-                      {assign.staff.position && (
-                        <p className="text-[10px] text-slate-500 mt-0.5">{assign.staff.position}</p>
+                      {assign.staff.positions?.map((p: any) => p.name).join(", ") && (
+                        <p className="text-[10px] text-slate-500 mt-0.5">{assign.staff.positions?.map((p: any) => p.name).join(", ")}</p>
                       )}
                     </div>
                   </div>

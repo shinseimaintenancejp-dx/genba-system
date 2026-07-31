@@ -26,6 +26,9 @@ export const apiClient: AxiosInstance = axios.create({
     Accept: "application/json",
   },
   withCredentials: true, // Required for httpOnly cookie auth (SEC§1.4)
+  paramsSerializer: {
+    indexes: null, // serializes arrays as key=val1&key=val2 instead of key[]=val1
+  },
 });
 
 // =============================================================================

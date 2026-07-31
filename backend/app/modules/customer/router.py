@@ -20,7 +20,10 @@ from app.modules.customer.schemas import (
     CustomerDetailResponse,
     CustomerContactCreate,
     CustomerContactUpdate,
+    CustomerContactCreate,
+    CustomerContactUpdate,
     CustomerContactResponse,
+    ReorderRequest,
 )
 
 T = TypeVar("T")
@@ -57,6 +60,25 @@ async def list_customers(
         search_query=search,
     )
     return build_paginated_response(list(items), total, pagination)
+
+@router.put(
+    "/reorder",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission(Permission.CUSTOMER_WRITE))],
+)
+async def reorder_customers(
+    db: DbSession,
+    user: CurrentUser,
+    data: ReorderRequest,
+) -> None:
+    """Bulk update display orders."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Reordering customers: {len(data.items)} items received")
+    
+    await CustomerService.reorder_customers(db, data, user["id"])
+    await db.commit()
+    logger.info("Reorder committed successfully")
 
 
 @router.post(

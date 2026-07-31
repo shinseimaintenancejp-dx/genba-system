@@ -362,8 +362,8 @@ export default function CleaningStandardsPage() {
       <Dialog.Root open={isOpen} onOpenChange={(open) => !open && resetForm() || setIsOpen(open)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-6 shadow-xl focus:outline-none animate-in fade-in-50 zoom-in-95 overflow-y-auto max-h-[90vh]">
-            <div className="flex items-start justify-between gap-4 mb-4 border-b border-slate-100 pb-3">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white shadow-xl focus:outline-none animate-in fade-in-50 zoom-in-95 flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex items-start justify-between p-6 border-b border-slate-100 bg-white z-10">
               <Dialog.Title className="text-lg font-bold text-slate-900">
                 {editingStandard ? "清掃作業基準を編集" : "清掃作業基準を追加"}
               </Dialog.Title>
@@ -374,7 +374,7 @@ export default function CleaningStandardsPage() {
               </Dialog.Close>
             </div>
 
-            <form onSubmit={handleSave} className="flex flex-col gap-4">
+            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Floor Number */}
                 <div className="flex flex-col gap-1.5">

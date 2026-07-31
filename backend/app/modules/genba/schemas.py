@@ -6,8 +6,8 @@ Defines schemas for worksite validation, duplicate verification, and response se
 
 import uuid
 from datetime import date, datetime
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # =============================================================================
 # Inline Creation Schemas (Sprint 5)
@@ -115,13 +115,18 @@ class GenbaResponse(GenbaBase):
     manual_created: bool
     genba_type: str | None = None
     genba_type_other: str | None = None
+    has_daily_contract: bool = False
+    has_periodic_contract: bool = False
     floor_above_ground: int | None = None
     floor_basement: int | None = None
     terminated_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True, strict=True)
+    staff_assignments: list["StaffAssignmentBriefResponse"] = []
+    customer: "CustomerBriefResponse | None" = None
+
+    model_config = ConfigDict(from_attributes=True, strict=False)
 
 
 # =============================================================================
@@ -153,7 +158,8 @@ class StaffBriefResponse(BaseModel):
     """Brief representation of a Staff member."""
 
     id: uuid.UUID
-    full_name: str
+    last_name: str
+    first_name: str
     position: str | None = None
 
     model_config = ConfigDict(from_attributes=True, strict=True)

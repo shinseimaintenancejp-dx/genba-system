@@ -71,3 +71,15 @@ export const useUpdatePartner = () => {
     },
   });
 };
+
+export const useReorderPartners = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items: { id: string; display_order: number }[]) =>
+      put("/partners/reorder", { items }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.partners.lists() });
+    },
+  });
+};

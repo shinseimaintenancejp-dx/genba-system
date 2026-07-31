@@ -14,7 +14,9 @@ export interface UserRecord {
   id: string;
   username: string;
   email: string | null;
-  full_name: string;
+  last_name: string;
+  first_name: string;
+  phone: string | null;
   role: string;
   related_entity_id: string | null;
   is_active: boolean;
@@ -30,13 +32,19 @@ export interface UserListResponse {
 export interface CreateUserPayload {
   username: string;
   email?: string;
-  full_name: string;
+  last_name: string;
+  first_name: string;
+  phone?: string;
   password: string;
+  is_active: boolean;
   role: string;
 }
 
 export interface UpdateUserPayload {
-  full_name?: string;
+  last_name?: string;
+  first_name?: string;
+  phone?: string;
+  password?: string;
   email?: string;
   role?: string;
   is_active?: boolean;
@@ -53,7 +61,7 @@ const createUserApi = (data: CreateUserPayload): Promise<UserRecord> =>
 const updateUserApi = (id: string, data: UpdateUserPayload): Promise<UserRecord> =>
   apiClient.patch<UserRecord, UserRecord>(`/auth/users/${id}`, data);
 
-const deactivateUserApi = (id: string): Promise<void> =>
+const deleteUserApi = (id: string): Promise<void> =>
   apiClient.delete<void, void>(`/auth/users/${id}`);
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -82,10 +90,10 @@ export function useUpdateUser() {
   });
 }
 
-export function useDeactivateUser() {
+export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: deactivateUserApi,
+    mutationFn: deleteUserApi,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "users"] }),
   });
 }

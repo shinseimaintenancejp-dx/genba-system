@@ -314,3 +314,26 @@ apiClient.interceptors.response.use(
   }
 );
 ```
+
+## 9. UI Navigation & Back Buttons
+
+When implementing "Back to List" (一覧に戻る) or similar back buttons in detail/edit screens, ALWAYS use the following pattern to preserve previous page state (such as search parameters, filters, and pagination):
+
+```tsx
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+// In component:
+const router = useRouter();
+
+<Link
+  href="/list-page-url" // Fallback href for "Open in new tab"
+  onClick={(e) => {
+    e.preventDefault(); // Prevent standard navigation
+    router.back();      // Use browser history to preserve search/pagination state
+  }}
+>
+  一覧に戻る
+</Link>
+```
+Do NOT just use `router.push("/list-page-url")` or a standard `<Link>` without `router.back()`, as this will wipe out the user's current search conditions.

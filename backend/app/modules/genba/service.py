@@ -6,8 +6,9 @@ Business logic for Genba worksites management.
 
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_service
@@ -42,16 +43,44 @@ class GenbaService:
         skip: int = 0,
         limit: int = 100,
         status: str | None = None,
-        customer_id: uuid.UUID | None = None,
+        customer_ids: list[uuid.UUID] | None = None,
+        staff_id: str | None = None,
         search_query: str | None = None,
+        has_periodic: bool | None = None,
+        periodic_month: int | None = None,
     ) -> tuple[Sequence[GenbaModel], int]:
         """List Genbas with pagination and filters."""
         items = await GenbaRepository.list_all(
-            db, skip=skip, limit=limit, status=status, customer_id=customer_id, search_query=search_query
+            db, skip=skip, limit=limit, status=status, customer_ids=customer_ids, staff_id=staff_id, search_query=search_query, has_periodic=has_periodic, periodic_month=periodic_month
         )
         total = await GenbaRepository.count_all(
-            db, status=status, customer_id=customer_id, search_query=search_query
+            db, status=status, customer_ids=customer_ids, staff_id=staff_id, search_query=search_query, has_periodic=has_periodic, periodic_month=periodic_month
         )
+
+        # Annotate with contract types
+        if items:
+            from sqlalchemy import select
+
+            from app.modules.contract.models import ContractModel
+
+            genba_ids = [item.id for item in items]
+            contracts_query = select(ContractModel.genba_id, ContractModel.service_category).where(
+                ContractModel.genba_id.in_(genba_ids)
+            )
+            res = await db.execute(contracts_query)
+            contracts = res.all()
+
+            contract_map = {}
+            for g_id, category in contracts:
+                if g_id not in contract_map:
+                    contract_map[g_id] = set()
+                contract_map[g_id].add(category)
+
+            for item in items:
+                cats = contract_map.get(item.id, set())
+                item.has_daily_contract = "DAILY" in cats
+                item.has_periodic_contract = "PERIODIC" in cats
+
         return items, total
 
     @staticmethod
@@ -135,7 +164,8 @@ class GenbaService:
             user_id=user_id,
             new_value=json.dumps(new_val, ensure_ascii=False),
         )
-        return created_genba, []
+        full_genba = await GenbaRepository.get_by_id(db, created_genba.id)
+        return full_genba or created_genba, []
 
     @staticmethod
     async def update_genba(
@@ -218,7 +248,7 @@ class GenbaService:
         old_val = {"status": genba.status, "terminated_at": str(genba.terminated_at) if genba.terminated_at else None}
 
         genba.status = "TERMINATED"
-        genba.terminated_at = datetime.now(timezone.utc)
+        genba.terminated_at = datetime.now(UTC)
 
         await db.flush()
 

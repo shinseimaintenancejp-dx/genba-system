@@ -13,7 +13,7 @@ from app.core.audit import audit_service
 from app.core.exceptions import NotFoundError
 from app.modules.partner.models import PartnerCompanyModel
 from app.modules.partner.repository import PartnerRepository
-from app.modules.partner.schemas import PartnerCompanyCreate, PartnerCompanyUpdate
+from app.modules.partner.schemas import PartnerCompanyCreate, PartnerCompanyUpdate, ReorderRequest
 
 
 class PartnerService:
@@ -55,9 +55,14 @@ class PartnerService:
     @staticmethod
     async def create_partner(db: AsyncSession, data: PartnerCompanyCreate, user_id: str) -> PartnerCompanyModel:
         """Create a new partner and log audit entry."""
+        short_name = data.short_name.strip() if data.short_name and data.short_name.strip() else data.company_name
         partner = PartnerCompanyModel(
             company_name=data.company_name,
+            short_name=short_name,
+            executive=data.executive,
+            postal_code=data.postal_code,
             phone=data.phone,
+            mobile=data.mobile,
             fax=data.fax,
             email=data.email,
             address=data.address,
@@ -69,6 +74,7 @@ class PartnerService:
         # Log audit log
         new_val = {
             "company_name": partner.company_name,
+            "short_name": partner.short_name,
             "contact_person": partner.contact_person,
         }
         await audit_service.log(
@@ -92,6 +98,7 @@ class PartnerService:
 
         old_val = {
             "company_name": partner.company_name,
+            "short_name": partner.short_name,
             "contact_person": partner.contact_person,
             "is_active": partner.is_active,
         }
@@ -101,10 +108,14 @@ class PartnerService:
         for field, value in update_data.items():
             setattr(partner, field, value)
 
+        if not partner.short_name or not partner.short_name.strip():
+            partner.short_name = partner.company_name
+
         await db.flush()
 
         new_val = {
             "company_name": partner.company_name,
+            "short_name": partner.short_name,
             "contact_person": partner.contact_person,
             "is_active": partner.is_active,
         }
@@ -119,3 +130,22 @@ class PartnerService:
             new_value=json.dumps(new_val, ensure_ascii=False),
         )
         return partner
+
+    @staticmethod
+    async def reorder_partners(db: AsyncSession, data: ReorderRequest, user_id: str) -> None:
+        """Bulk update display orders for partners."""
+        from sqlalchemy import update
+        
+        for item in data.items:
+            await db.execute(
+                update(PartnerCompanyModel)
+                .where(PartnerCompanyModel.id == item.id)
+                .values(display_order=item.display_order)
+            )
+            
+        await audit_service.log(
+            session=db,
+            action="UPDATE",
+            entity_type="partner",
+            user_id=user_id,
+        )

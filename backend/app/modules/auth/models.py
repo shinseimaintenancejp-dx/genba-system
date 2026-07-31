@@ -43,7 +43,9 @@ class UserModel(Base):
         index=True,
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # Role — one of the 6 defined roles (SEC§2.1)
     role: Mapped[str] = mapped_column(

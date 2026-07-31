@@ -6,8 +6,10 @@ import {
   usePartnerDetail,
   useCreatePartner,
   useUpdatePartner,
+  useReorderPartners
 } from "@/hooks/usePartners";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { SortablePartnerList } from "@/components/SortablePartnerList";
 import {
   Building2,
   Phone,
@@ -28,7 +30,11 @@ import type { PartnerCompany } from "@/types/partner";
 
 const partnerSchema = z.object({
   company_name: z.string().min(1, "協力会社名は必須です。").max(200, "会社名は200文字以内で入力してください。"),
+  short_name: z.string().max(100, "略称は100文字以内で入力してください。").optional().or(z.literal("")),
+  executive: z.string().max(100, "役員名は100文字以内で入力してください。").optional().or(z.literal("")),
+  postal_code: z.string().max(20, "郵便番号は20文字以内で入力してください。").optional().or(z.literal("")),
   phone: z.string().max(20, "電話番号は20文字以内で入力してください。").optional().or(z.literal("")),
+  mobile: z.string().max(20, "携帯番号は20文字以内で入力してください。").optional().or(z.literal("")),
   fax: z.string().max(20, "FAX番号は20文字以内で入力してください。").optional().or(z.literal("")),
   email: z.string().email("無効なメールアドレスです。").optional().or(z.literal("")),
   address: z.string().max(500, "住所は500文字以内で入力してください。").optional().or(z.literal("")),
@@ -48,11 +54,12 @@ export default function PartnersPage() {
   const [partnerModal, setPartnerModal] = useState<{ open: boolean; partner?: PartnerCompany } | null>(null);
 
   // Queries & Mutations
-  const { data: partnerList, isLoading: isLoadingList } = usePartners({ search: search || undefined });
+  const { data: partnerList, isLoading: isLoadingList } = usePartners({ search: search || undefined, limit: 1000 });
   const { data: partnerDetail, isLoading: isLoadingDetail } = usePartnerDetail(selectedPartnerId || "");
 
   const createPartnerMutation = useCreatePartner();
   const updatePartnerMutation = useUpdatePartner();
+  const reorderPartnerMutation = useReorderPartners();
 
   // Form setups
   const partnerForm = useForm<PartnerFormValues>({
@@ -63,7 +70,11 @@ export default function PartnersPage() {
   const onPartnerSubmit = (values: PartnerFormValues) => {
     const cleanValues = {
       ...values,
+      short_name: values.short_name?.trim() ? values.short_name.trim() : values.company_name,
+      executive: values.executive || undefined,
+      postal_code: values.postal_code || undefined,
       phone: values.phone || undefined,
+      mobile: values.mobile || undefined,
       fax: values.fax || undefined,
       email: values.email || undefined,
       address: values.address || undefined,
@@ -89,7 +100,11 @@ export default function PartnersPage() {
     if (partner) {
       partnerForm.reset({
         company_name: partner.company_name,
+        short_name: partner.short_name || partner.company_name,
+        executive: partner.executive || "",
+        postal_code: partner.postal_code || "",
         phone: partner.phone || "",
+        mobile: partner.mobile || "",
         fax: partner.fax || "",
         email: partner.email || "",
         address: partner.address || "",
@@ -100,7 +115,11 @@ export default function PartnersPage() {
     } else {
       partnerForm.reset({
         company_name: "",
+        short_name: "",
+        executive: "",
+        postal_code: "",
         phone: "",
+        mobile: "",
         fax: "",
         email: "",
         address: "",
@@ -144,15 +163,18 @@ export default function PartnersPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column: Partners List */}
         <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="協力会社名で検索..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-            />
+          <div className="w-full">
+            <label className="block text-xs font-medium text-slate-600 mb-1">協力会社名・検索</label>
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="協力会社名で検索..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-10 rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1 overflow-y-auto max-h-[600px] pr-1">
@@ -165,30 +187,19 @@ export default function PartnersPage() {
                 協力会社が見つかりません。
               </p>
             ) : (
-              partnerList?.items.map((part) => (
-                <button
-                  key={part.id}
-                  onClick={() => setSelectedPartnerId(part.id)}
-                  className={`flex flex-col text-left p-3.5 rounded-lg border text-sm transition-all ${
-                    selectedPartnerId === part.id
-                      ? "border-blue-200 bg-blue-50/50 hover:bg-blue-50"
-                      : "border-slate-100 bg-white hover:bg-slate-50"
-                  }`}
-                >
-                  <span className="font-semibold text-slate-800 line-clamp-1">
-                    {part.company_name}
-                  </span>
-                  {part.contact_person && (
-                    <span className="text-xs text-slate-500 mt-1 line-clamp-1">
-                      担当: {part.contact_person}
-                    </span>
-                  )}
-                  <span className="text-xs text-slate-400 mt-1.5 flex items-center gap-1.5">
-                    <Building className="h-3 w-3 shrink-0" />
-                    {part.is_active ? "有効" : "無効"}
-                  </span>
-                </button>
-              ))
+              <SortablePartnerList
+                items={partnerList?.items || []}
+                selectedId={selectedPartnerId}
+                onSelect={setSelectedPartnerId}
+                isDragEnabled={!search}
+                onReorder={(newItems) => {
+                  const itemsToUpdate = newItems.map((item, index) => ({
+                    id: item.id,
+                    display_order: index,
+                  }));
+                  reorderPartnerMutation.mutate(itemsToUpdate);
+                }}
+              />
             )}
           </div>
         </div>
@@ -230,6 +241,10 @@ export default function PartnersPage() {
                     <span className="font-semibold text-slate-800">{partnerDetail.company_name}</span>
                   </div>
                   <div>
+                    <span className="text-xs text-slate-400 font-medium block">略称（ショートネーム）</span>
+                    <span className="font-semibold text-slate-800">{partnerDetail.short_name || partnerDetail.company_name}</span>
+                  </div>
+                  <div>
                     <span className="text-xs text-slate-400 font-medium block">ステータス</span>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                       partnerDetail.is_active ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
@@ -238,15 +253,27 @@ export default function PartnersPage() {
                     </span>
                   </div>
                   {partnerDetail.contact_person && (
-                    <div>
+                    <div className="md:col-span-2">
                       <span className="text-xs text-slate-400 font-medium block">窓口担当者名</span>
                       <span className="font-semibold text-slate-800">{partnerDetail.contact_person}</span>
+                    </div>
+                  )}
+                  {partnerDetail.executive && (
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-slate-400 font-medium block">役員</span>
+                      <span className="font-semibold text-slate-800">{partnerDetail.executive}</span>
                     </div>
                   )}
                   {partnerDetail.phone && (
                     <div>
                       <span className="text-xs text-slate-400 font-medium block">電話番号</span>
                       <span className="font-semibold text-slate-800">{partnerDetail.phone}</span>
+                    </div>
+                  )}
+                  {partnerDetail.mobile && (
+                    <div>
+                      <span className="text-xs text-slate-400 font-medium block">携帯番号</span>
+                      <span className="font-semibold text-slate-800">{partnerDetail.mobile}</span>
                     </div>
                   )}
                   {partnerDetail.fax && (
@@ -259,6 +286,12 @@ export default function PartnersPage() {
                     <div>
                       <span className="text-xs text-slate-400 font-medium block">メールアドレス</span>
                       <span className="font-semibold text-slate-800">{partnerDetail.email}</span>
+                    </div>
+                  )}
+                  {partnerDetail.postal_code && (
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-slate-400 font-medium block">郵便番号</span>
+                      <span className="font-semibold text-slate-800">{partnerDetail.postal_code}</span>
                     </div>
                   )}
                   {partnerDetail.address && (
@@ -313,6 +346,19 @@ export default function PartnersPage() {
               </div>
 
               <div className="flex flex-col gap-1">
+                <label className="font-semibold text-slate-700">略称（ショートネーム）</label>
+                <input
+                  type="text"
+                  placeholder="未入力の場合は会社名が自動設定されます"
+                  {...partnerForm.register("short_name")}
+                  className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                {partnerForm.formState.errors.short_name && (
+                  <p className="text-xs text-destructive">{partnerForm.formState.errors.short_name.message}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
                 <label className="font-semibold text-slate-700">窓口担当者名</label>
                 <input
                   type="text"
@@ -322,6 +368,19 @@ export default function PartnersPage() {
                 />
                 {partnerForm.formState.errors.contact_person && (
                   <p className="text-xs text-destructive">{partnerForm.formState.errors.contact_person.message}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-semibold text-slate-700">役員</label>
+                <input
+                  type="text"
+                  placeholder="例: 代表取締役"
+                  {...partnerForm.register("executive")}
+                  className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                {partnerForm.formState.errors.executive && (
+                  <p className="text-xs text-destructive">{partnerForm.formState.errors.executive.message}</p>
                 )}
               </div>
 
@@ -339,6 +398,19 @@ export default function PartnersPage() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
+                  <label className="font-semibold text-slate-700">携帯番号</label>
+                  <input
+                     type="text"
+                     placeholder="090-XXXX-XXXX"
+                     {...partnerForm.register("mobile")}
+                     className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  {partnerForm.formState.errors.mobile && (
+                    <p className="text-xs text-destructive">{partnerForm.formState.errors.mobile.message}</p>
+                  )}
+                </div>
+              </div>
+                <div className="flex flex-col gap-1">
                   <label className="font-semibold text-slate-700">FAX番号</label>
                   <input
                      type="text"
@@ -350,7 +422,7 @@ export default function PartnersPage() {
                     <p className="text-xs text-destructive">{partnerForm.formState.errors.fax.message}</p>
                   )}
                 </div>
-              </div>
+              
 
               <div className="flex flex-col gap-1">
                 <label className="font-semibold text-slate-700">メールアドレス</label>
@@ -365,17 +437,31 @@ export default function PartnersPage() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-semibold text-slate-700">住所</label>
-                <input
-                  type="text"
-                  placeholder="東京都新宿区..."
-                  {...partnerForm.register("address")}
-                  className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-                {partnerForm.formState.errors.address && (
-                  <p className="text-xs text-destructive">{partnerForm.formState.errors.address.message}</p>
-                )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="font-semibold text-slate-700">郵便番号</label>
+                  <input
+                     type="text"
+                     placeholder="100-0001"
+                     {...partnerForm.register("postal_code")}
+                     className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  {partnerForm.formState.errors.postal_code && (
+                    <p className="text-xs text-destructive">{partnerForm.formState.errors.postal_code.message}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-semibold text-slate-700">住所</label>
+                  <input
+                    type="text"
+                    placeholder="例: 東京都千代田区..."
+                    {...partnerForm.register("address")}
+                    className="h-10 rounded-lg border border-slate-200 px-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  {partnerForm.formState.errors.address && (
+                    <p className="text-xs text-destructive">{partnerForm.formState.errors.address.message}</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">

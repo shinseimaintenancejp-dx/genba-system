@@ -10,6 +10,7 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode;
   sortable?: boolean;
   sortField?: string;
+  className?: string;
 }
 
 interface DataTableProps<T> {
@@ -155,11 +156,12 @@ export function DataTable<T>({
                   key={idx}
                   onClick={() => handleSort(column)}
                   className={cn(
-                    "px-6 py-4 select-none font-semibold",
-                    column.sortable && "cursor-pointer hover:bg-slate-100 group transition-colors"
+                    "px-4 py-3.5 text-left text-xs font-semibold text-slate-600 transition-colors",
+                    column.sortable ? "cursor-pointer select-none hover:bg-slate-100/50" : "",
+                    column.className
                   )}
                 >
-                  <div className="flex items-center">
+                  <div className={cn("flex items-center", column.className?.includes("text-center") && "justify-center")}>
                     <span>{column.header}</span>
                     {renderSortIcon(column)}
                   </div>
@@ -178,7 +180,10 @@ export function DataTable<T>({
                     : null;
 
                   return (
-                    <td key={cIdx} className="px-6 py-3.5 align-middle">
+                    <td
+                      key={cIdx}
+                      className={cn("px-4 py-3 text-sm text-slate-700 max-w-[200px] truncate", column.className)}
+                    >
                       {content}
                     </td>
                   );

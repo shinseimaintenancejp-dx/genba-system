@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useContracts } from "@/hooks/useContracts";
+import { useContracts, useContractDetail } from "@/hooks/useContracts";
 import { useCustomers } from "@/hooks/useCustomers";
 import { usePartners } from "@/hooks/usePartners";
 import { DataTable, type Column } from "@/components/common/DataTable";
@@ -11,7 +11,8 @@ import { ContractTypeSelector } from "@/components/contracts/ContractTypeSelecto
 import { DailyContractForm } from "@/components/contracts/DailyContractForm";
 import { PeriodicContractForm } from "@/components/contracts/PeriodicContractForm";
 import { OtherContractForm } from "@/components/contracts/OtherContractForm";
-import { Plus, Edit2, Search, X } from "lucide-react";
+import { mapContractToDefaultValues } from "@/lib/contractMapper";
+import { Plus, Eye, PencilLine, Search, X, Loader2 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Contract } from "@/types/contract";
 
@@ -19,17 +20,25 @@ export default function GenbaContractsPage() {
   const params = useParams();
   const genbaId = params.id as string;
   const { data: currentUser } = useCurrentUser();
+  const canWrite = currentUser && ["ADMIN", "SENIOR_STAFF", "INTERNAL_STAFF"].includes(currentUser.role);
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState("");
   const [contractType, setContractType] = useState<string>("");
+  const [serviceCategory, setServiceCategory] = useState<string>("");
   const [status, setStatus] = useState<string>("");
 
   // Modals state
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [createFormType, setCreateFormType] = useState<"DAILY" | "PERIODIC" | "OTHER" | null>(null);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
   const [editContract, setEditContract] = useState<Contract | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+
+  // Fetch contract detail if selected
+  const { data: contractDetail, isLoading: isLoadingDetail } = useContractDetail(selectedContractId || "");
+  const activeContract = contractDetail || editContract;
 
   // Query contracts filtered by this specific genbaId
   const { data: contractsData, isLoading: isLoadingContracts, refetch } = useContracts({
@@ -38,6 +47,7 @@ export default function GenbaContractsPage() {
     genba_id: genbaId,
     search: search || undefined,
     contract_type: contractType || undefined,
+    service_category: serviceCategory || undefined,
     status: status || undefined,
   });
 
@@ -61,15 +71,31 @@ export default function GenbaContractsPage() {
     }).format(val);
   };
 
+  const handleViewContract = (contract: Contract) => {
+    setSelectedContractId(contract.id);
+    setEditContract(contract);
+    setIsReadOnly(true);
+  };
+
+  const handleEditContract = (contract: Contract) => {
+    setSelectedContractId(contract.id);
+    setEditContract(contract);
+    setIsReadOnly(false);
+  };
+
   const handleFormSuccess = () => {
     setCreateFormType(null);
     setEditContract(null);
+    setSelectedContractId(null);
+    setIsReadOnly(false);
     refetch(); // Invalidate or refetch list
   };
 
   const handleFormCancel = () => {
     setCreateFormType(null);
     setEditContract(null);
+    setSelectedContractId(null);
+    setIsReadOnly(false);
   };
 
   // Columns for the Genba-specific contract table
@@ -205,22 +231,21 @@ export default function GenbaContractsPage() {
 
         return (
           <button
-            onClick={() => setEditContract(row)}
-            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Edit contract"
+            onClick={() => handleViewContract(row)}
+            className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 text-slate-600 hover:text-[#1E60F2] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="詳細"
+            aria-label="View contract"
           >
-            <Edit2 className="h-4 w-4" />
+            <Eye className="h-4 w-4" />
           </button>
         );
       },
     },
   ];
 
-  const canWrite = currentUser?.role === "ADMIN" || currentUser?.role === "SENIOR_STAFF" || currentUser?.role === "INTERNAL_STAFF";
-
   // Determine active form type (Create or Edit)
-  const activeFormType = createFormType || editContract?.service_category;
-  const isFormOpen = !!activeFormType;
+  const activeFormType = createFormType || activeContract?.service_category;
+  const isFormOpen = !!createFormType || !!selectedContractId || !!editContract;
 
   return (
     <div className="flex flex-col gap-6">
@@ -234,59 +259,92 @@ export default function GenbaContractsPage() {
         {canWrite && (
           <div>
             <button
-              onClick={() => setIsSelectorOpen(true)}
+              onClick={() => {
+                setIsReadOnly(false);
+                setIsSelectorOpen(true);
+              }}
               className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg bg-[#1E60F2] px-5 text-sm font-semibold text-white hover:bg-[#0F4FD0] transition-colors shadow-sm"
             >
               <Plus className="h-5 w-5" />
-              <span>契約追加</span>
+              <span>新規契約登録</span>
             </button>
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="契約コードで検索..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full h-11 rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-          />
+      <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end">
+        {/* Search */}
+        <div className="w-full sm:w-[24rem]">
+          <label className="block text-xs font-medium text-slate-600 mb-1">フリーワード検索</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="契約コードで検索..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full h-10 rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+            />
+          </div>
         </div>
 
-        <select
-          value={contractType}
-          onChange={(e) => {
-            setContractType(e.target.value);
-            setPage(1);
-          }}
-          className="h-11 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-        >
-          <option value="">契約種別 (すべて)</option>
-          <option value="RECEIVING">元請契約 (RECEIVING)</option>
-          <option value="ORDERING">下請契約 (ORDERING)</option>
-        </select>
+        {/* Contract Type Filter */}
+        <div className="w-full sm:w-48">
+          <label className="block text-xs font-medium text-slate-600 mb-1">契約種別</label>
+          <select
+            value={contractType}
+            onChange={(e) => {
+              setContractType(e.target.value);
+              setPage(1);
+            }}
+            className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white"
+          >
+            <option value="">すべて</option>
+            <option value="RECEIVING">元請契約</option>
+            <option value="ORDERING">下請契約</option>
+          </select>
+        </div>
 
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className="h-11 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-        >
-          <option value="">ステータス (すべて)</option>
-          <option value="DRAFT">下書き</option>
-          <option value="PENDING_APPROVAL">承認待ち</option>
-          <option value="ACTIVE">有効</option>
-          <option value="EXPIRED">期限切れ</option>
-          <option value="CANCELLED">解約</option>
-        </select>
+        {/* Service Category Filter */}
+        <div className="w-full sm:w-48">
+          <label className="block text-xs font-medium text-slate-600 mb-1">業務区分</label>
+          <select
+            value={serviceCategory}
+            onChange={(e) => {
+              setServiceCategory(e.target.value);
+              setPage(1);
+            }}
+            className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white"
+          >
+            <option value="">すべて</option>
+            <option value="DAILY">日常清掃</option>
+            <option value="PERIODIC">定期清掃</option>
+            <option value="OTHER">その他</option>
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div className="w-full sm:w-48">
+          <label className="block text-xs font-medium text-slate-600 mb-1">ステータス</label>
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white"
+          >
+            <option value="">すべて</option>
+            <option value="DRAFT">下書き</option>
+            <option value="PENDING_APPROVAL">承認待ち</option>
+            <option value="ACTIVE">有効</option>
+            <option value="EXPIRED">期限切れ</option>
+            <option value="CANCELLED">解約</option>
+          </select>
+        </div>
       </div>
 
       <DataTable
@@ -304,111 +362,80 @@ export default function GenbaContractsPage() {
       <ContractTypeSelector
         open={isSelectorOpen}
         onOpenChange={setIsSelectorOpen}
-        onSelect={(type) => setCreateFormType(type)}
+        onSelect={(type) => {
+          setIsReadOnly(false);
+          setCreateFormType(type);
+        }}
       />
 
       {/* 2. Contract Form Modal */}
       <Dialog.Root open={isFormOpen} onOpenChange={(open) => { if (!open) handleFormCancel(); }}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-6 shadow-xl focus:outline-none animate-in fade-in-50 zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between mb-4">
-              <Dialog.Title className="text-lg font-bold text-slate-900">
-                {editContract ? "契約の編集" : "契約の新規登録"}
-              </Dialog.Title>
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-slate-50 shadow-2xl focus:outline-none animate-in fade-in-50 zoom-in-95 flex flex-col h-[90vh] max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex items-start justify-between p-6 border-b border-slate-200 bg-slate-50 z-10">
+              <div>
+                <div className="flex items-center gap-3">
+                  <Dialog.Title className="text-2xl font-bold text-slate-900">
+                    {createFormType ? "契約の新規登録" : isReadOnly ? "契約詳細" : "契約の編集"}
+                  </Dialog.Title>
+                  {activeContract && isReadOnly && canWrite && (
+                    <button
+                      type="button"
+                      onClick={() => setIsReadOnly(false)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1E60F2] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 shadow-sm"
+                    >
+                      <PencilLine className="h-3.5 w-3.5" />
+                      <span>編集する</span>
+                    </button>
+                  )}
+                </div>
+                <Dialog.Description className="text-sm text-slate-500 mt-1">
+                  {isReadOnly ? "契約の登録内容を確認できます。" : "必要な項目を入力して保存してください。"}
+                </Dialog.Description>
+              </div>
               <Dialog.Close asChild>
-                <button className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-                  <X className="h-5 w-5" />
+                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors">
+                  <X className="h-6 w-6" />
                 </button>
               </Dialog.Close>
             </div>
 
-            <div>
-              {activeFormType === "DAILY" && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {isLoadingDetail && selectedContractId ? (
+                <div className="flex-1 flex items-center justify-center p-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#1E60F2]" />
+                  <span className="ml-3 text-sm font-medium text-slate-600">契約情報を読み込み中...</span>
+                </div>
+              ) : activeFormType === "DAILY" ? (
                 <DailyContractForm
                   genbaId={genbaId}
-                  defaultValues={editContract ? mapContractToDefaultValues(editContract) : undefined}
+                  defaultValues={activeContract ? mapContractToDefaultValues(activeContract) : undefined}
                   onSuccess={handleFormSuccess}
                   onCancel={handleFormCancel}
+                  readOnly={isReadOnly}
                 />
-              )}
-              {activeFormType === "PERIODIC" && (
+              ) : activeFormType === "PERIODIC" ? (
                 <PeriodicContractForm
                   genbaId={genbaId}
-                  defaultValues={editContract ? mapContractToDefaultValues(editContract) : undefined}
+                  defaultValues={activeContract ? mapContractToDefaultValues(activeContract) : undefined}
                   onSuccess={handleFormSuccess}
                   onCancel={handleFormCancel}
+                  readOnly={isReadOnly}
                 />
-              )}
-              {activeFormType === "OTHER" && (
+              ) : activeFormType === "OTHER" ? (
                 <OtherContractForm
                   genbaId={genbaId}
-                  defaultValues={editContract ? mapContractToDefaultValues(editContract) : undefined}
+                  defaultValues={activeContract ? mapContractToDefaultValues(activeContract) : undefined}
                   onSuccess={handleFormSuccess}
                   onCancel={handleFormCancel}
+                  readOnly={isReadOnly}
                 />
-              )}
+              ) : null}
             </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
     </div>
   );
-}
-
-function mapContractToDefaultValues(contract: Contract): any {
-  return {
-    id: contract.id,
-    contractName: contract.contract_name || "",
-    contractType: contract.contract_type,
-    serviceType: contract.service_type,
-    serviceCategory: contract.service_category,
-    genbaId: contract.genba_id || "",
-    customerId: contract.customer_id || undefined,
-    partnerId: contract.partner_id || undefined,
-    startDate: contract.start_date.split("T")[0],
-    endDate: contract.end_date ? contract.end_date.split("T")[0] : undefined,
-    amount: typeof contract.amount === "string" ? parseFloat(contract.amount) : contract.amount,
-    taxType: contract.tax_type,
-    autoRenew: contract.auto_renew,
-    invoiceRequired: contract.invoice_required,
-    workContentSummary: contract.work_content_summary || undefined,
-    contractPdfUrl: contract.contract_pdf_url || undefined,
-    
-    // Daily specifics
-    weeklyFrequency: contract.weekly_frequency ? Number(contract.weekly_frequency) : undefined,
-    workDays: contract.work_days || "",
-    workSlots: contract.work_slots?.map(s => ({
-      startTime: s.start_time,
-      endTime: s.end_time,
-      breakMinutes: Number(s.break_minutes),
-      workDurationHours: (s as any).work_duration_hours ? Number((s as any).work_duration_hours) : undefined,
-      sortOrder: Number(s.sort_order),
-    })) || [],
-    workerCounts: contract.worker_counts?.map(w => ({
-      workerCount: Number(w.worker_count),
-      workDurationHours: Number(w.work_duration_hours),
-      totalHours: Number(w.total_hours),
-      sortOrder: Number(w.sort_order),
-    })) || [],
-
-    
-    // Periodic specifics
-    periodicSchedule: contract.periodic_schedule ? {
-      frequencyPerYear: contract.periodic_schedule.frequency_per_year,
-      workMonths: contract.periodic_schedule.work_months,
-      workDays: contract.periodic_schedule.work_days,
-    } : { frequencyPerYear: 1, workMonths: [], workDays: [] },
-    
-    // Other specifics
-    workType: contract.work_type,
-    subServiceType: contract.sub_service_type,
-    workExecutionDate: contract.work_execution_date,
-    
-    // Holidays
-    holidayRules: contract.holiday_rules?.map(h => ({
-      ruleType: h.rule_type,
-      action: h.action,
-    })) || [],
-  };
 }

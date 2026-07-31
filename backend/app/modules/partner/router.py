@@ -17,6 +17,7 @@ from app.modules.partner.schemas import (
     PartnerCompanyCreate,
     PartnerCompanyUpdate,
     PartnerCompanyResponse,
+    ReorderRequest,
 )
 
 T = TypeVar("T")
@@ -49,6 +50,26 @@ async def list_partners(
         search_query=search,
     )
     return build_paginated_response(list(items), total, pagination)
+
+
+@router.put(
+    "/reorder",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission(Permission.PARTNER_WRITE))],
+)
+async def reorder_partners(
+    db: DbSession,
+    user: CurrentUser,
+    data: ReorderRequest,
+) -> None:
+    """Bulk update display orders."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Reordering partners: {len(data.items)} items received")
+    
+    await PartnerService.reorder_partners(db, data, user["id"])
+    await db.commit()
+    logger.info("Reorder committed successfully")
 
 
 @router.post(

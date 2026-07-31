@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useCreateContract, useUpdateContract } from "@/hooks/useContracts";
 import { useGenbaList, useGenbaDetail } from "@/hooks/useGenba";
 import { usePartners } from "@/hooks/usePartners";
 import { Loader2 } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
 import type { PeriodicContractCreatePayload } from "@/types/contract";
 
 // Validation schema
@@ -67,6 +68,7 @@ interface PeriodicContractFormProps {
   defaultValues?: Partial<PeriodicContractFormValues>;
   onSuccess?: () => void;
   onCancel?: () => void;
+  readOnly?: boolean;
 }
 
 export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
@@ -74,11 +76,48 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
   defaultValues,
   onSuccess,
   onCancel,
+  readOnly = false,
 }) => {
   const isEditMode = !!defaultValues && !!defaultValues.id;
   
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelEndDate, setCancelEndDate] = useState(
+    defaultValues?.endDate || new Date().toISOString().split("T")[0]
+  );
+  const [cancelError, setCancelError] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
+
   const { data: genbaData, isLoading: isLoadingGenba } = useGenbaList({ limit: 1000 });
   const { data: partnerData, isLoading: isLoadingPartners } = usePartners({ limit: 200 });
+
+  const createContractMutation = useCreateContract();
+  const updateContractMutation = useUpdateContract();
+
+  const handleConfirmCancel = async () => {
+    if (!cancelEndDate) {
+      setCancelError("終了日を入力してください");
+      return;
+    }
+    if (!defaultValues?.id) return;
+
+    setIsCancelling(true);
+    setCancelError("");
+    try {
+      await updateContractMutation.mutateAsync({
+        id: defaultValues.id,
+        data: {
+          status: "CANCELLED",
+          endDate: cancelEndDate,
+        },
+      });
+      setIsCancelModalOpen(false);
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      setCancelError(err?.message || "解約処理に失敗しました");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const methods = useForm<PeriodicContractFormValues>({
     resolver: zodResolver(periodicContractSchema),
@@ -141,14 +180,52 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-8 pb-10">
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col flex-1 h-full overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          <fieldset disabled={readOnly} className="space-y-8 disabled:opacity-90">
         
         {/* Section 1: Basic Info */}
         <div className="space-y-4 rounded-xl border border-slate-200/60 bg-white p-6 shadow-sm/50">
           <h2 className="text-xl font-bold border-b border-slate-100 pb-2">基本情報</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Contract Name */}
+            {/* Genba Field (First) */}
+            <div className="space-y-2 sm:col-span-2">
+              <label className="text-sm font-semibold text-slate-700">現場 <span className="text-red-500">*</span></label>
+              {genbaId || readOnly ? (
+                <input
+                  type="text"
+                  value={
+                    genbaDetail?.property_name ||
+                    genbaData?.items.find((g) => g.id === activeGenbaId)?.property_name ||
+                    (defaultValues as any)?.genba_name ||
+                    (defaultValues as any)?.genbaName ||
+                    ""
+                  }
+                  readOnly
+                  disabled
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none"
+                />
+              ) : (
+                <>
+                  <select
+                    {...methods.register("genbaId")}
+                    disabled={isLoadingGenba || readOnly}
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60"
+                  >
+                    <option value="">現場を選択してください</option>
+                    {genbaData?.items.map((g) => (
+                      <option key={g.id} value={g.id}>{g.property_name}</option>
+                    ))}
+                  </select>
+                  {methods.formState.errors.genbaId && (
+                    <p className="text-xs text-destructive">{methods.formState.errors.genbaId.message}</p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Contract Name (Second) */}
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm font-semibold text-slate-700">契約名 <span className="text-red-500">*</span></label>
               <input
@@ -173,47 +250,7 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
                 <option value="ORDERING">発注</option>
               </select>
             </div>
-            
-            {/* Genba Selector (only if not fixed) */}
-            {!genbaId && (
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-semibold text-slate-700">現場 <span className="text-red-500">*</span></label>
-                <select
-                  {...methods.register("genbaId")}
-                  disabled={isLoadingGenba}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60"
-                >
-                  <option value="">現場を選択してください</option>
-                  {genbaData?.items.map((g) => (
-                    <option key={g.id} value={g.id}>{g.property_name}</option>
-                  ))}
-                </select>
-                {methods.formState.errors.genbaId && (
-                  <p className="text-xs text-destructive">{methods.formState.errors.genbaId.message}</p>
-                )}
-              </div>
-            )}
-            
-            {/* Partner Selector (only if ORDERING) */}
-            {contractType === "ORDERING" && (
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-semibold text-slate-700">協力会社 <span className="text-red-500">*</span></label>
-                <select
-                  {...methods.register("partnerId")}
-                  disabled={isLoadingPartners}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60"
-                >
-                  <option value="">協力会社を選択してください</option>
-                  {partnerData?.items.map((p) => (
-                    <option key={p.id} value={p.id}>{p.company_name}</option>
-                  ))}
-                </select>
-                {methods.formState.errors.partnerId && (
-                  <p className="text-xs text-destructive">{methods.formState.errors.partnerId.message}</p>
-                )}
-              </div>
-            )}
-            
+
             {/* Service Type */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">サービス種別 <span className="text-red-500">*</span></label>
@@ -228,6 +265,26 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
                 <p className="text-xs text-destructive">{methods.formState.errors.serviceType.message}</p>
               )}
             </div>
+
+            {/* Partner Selector (only if ORDERING) */}
+            {contractType === "ORDERING" && (
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm font-semibold text-slate-700">協力会社 <span className="text-red-500">*</span></label>
+                <select
+                  {...methods.register("partnerId")}
+                  disabled={isLoadingPartners || readOnly}
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60"
+                >
+                  <option value="">協力会社を選択してください</option>
+                  {partnerData?.items.map((p) => (
+                    <option key={p.id} value={p.id}>{p.company_name}</option>
+                  ))}
+                </select>
+                {methods.formState.errors.partnerId && (
+                  <p className="text-xs text-destructive">{methods.formState.errors.partnerId.message}</p>
+                )}
+              </div>
+            )}
 
             {/* Start Date */}
             <div className="space-y-2">
@@ -255,11 +312,26 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
             {/* Amount */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">金額 <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                min="0"
-                {...methods.register("amount", { valueAsNumber: true })}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
+              <Controller
+                name="amount"
+                control={methods.control}
+                render={({ field: { onChange, value, ref } }) => (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      ref={ref}
+                      value={typeof value === 'number' && !isNaN(value) ? value.toLocaleString("ja-JP") : (value ?? "")}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/,/g, '');
+                        if (raw === '' || /^\d+$/.test(raw)) {
+                          onChange(raw === '' ? undefined : Number(raw));
+                        }
+                      }}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-8 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all text-right"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-medium">円</span>
+                  </div>
+                )}
               />
               {methods.formState.errors.amount && (
                 <p className="text-xs text-destructive">{methods.formState.errors.amount.message}</p>
@@ -359,27 +431,109 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
             </p>
           </div>
         </div>
+        </fieldset>
+        </div>
 
-        {/* Submit Actions */}
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isPending}
-            className="h-[48px] sm:h-10 w-full sm:w-auto rounded-lg border border-input bg-transparent px-6 sm:px-4 text-lg sm:text-base font-semibold text-slate-900 hover:bg-slate-100 transition-colors disabled:opacity-30 disabled:pointer-events-none"
-          >
-            キャンセル
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="inline-flex items-center justify-center h-[52px] sm:h-10 w-full sm:w-auto rounded-lg bg-[#1E60F2] px-6 sm:px-4 text-lg sm:text-base font-semibold text-white hover:bg-[#0F4FD0] transition-colors disabled:bg-muted disabled:text-muted-foreground disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isPending ? "保存中..." : isEditMode ? "更新する" : "作成する"}
-          </button>
+        {/* Anchored Sticky Footer */}
+        <div className="shrink-0 p-4 sm:px-6 border-t border-slate-200 bg-slate-50 flex items-center justify-between z-10">
+          {readOnly ? (
+            <div className="flex justify-end w-full">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="h-10 rounded-lg border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                閉じる
+              </button>
+            </div>
+          ) : (
+            <>
+              <div>
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    disabled={isPending || isCancelling || (defaultValues as any)?.status === "CANCELLED"}
+                    className="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-sm font-semibold transition-colors disabled:opacity-50 shadow-sm"
+                  >
+                    {(defaultValues as any)?.status === "CANCELLED" ? "解約済み" : "解約"}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={isPending}
+                  className="h-[48px] sm:h-10 w-full sm:w-auto rounded-lg border border-input bg-white px-6 sm:px-4 text-lg sm:text-base font-semibold text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30 disabled:pointer-events-none shadow-sm"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="inline-flex items-center justify-center h-[52px] sm:h-10 w-full sm:w-auto rounded-lg bg-[#1E60F2] px-6 sm:px-4 text-lg sm:text-base font-semibold text-white hover:bg-[#0F4FD0] transition-colors disabled:bg-muted disabled:text-muted-foreground disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+                >
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isPending ? "保存中..." : isEditMode ? "更新する" : "作成する"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </form>
+
+      {/* Cancel Contract Confirmation Dialog */}
+      <Dialog.Root open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[95vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-2xl p-6">
+            <Dialog.Title className="text-xl font-bold text-slate-900 mb-2">
+              契約の解約手続き
+            </Dialog.Title>
+            <Dialog.Description className="text-sm text-slate-600 mb-4">
+              この契約を「解約」状態に変更します。終了日（解約日）を入力してください。
+            </Dialog.Description>
+
+            <div className="space-y-2 mb-6">
+              <label className="block text-sm font-semibold text-slate-700">
+                終了日（解約日） <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={cancelEndDate}
+                onChange={(e) => {
+                  setCancelEndDate(e.target.value);
+                  setCancelError("");
+                }}
+                className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
+              />
+              {cancelError && <p className="text-xs text-red-500 font-medium">{cancelError}</p>}
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(false)}
+                disabled={isCancelling}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F83B3B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#E51E1E] disabled:opacity-60 transition-colors shadow-sm"
+              >
+                {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                <span>{isCancelling ? "解約処理中..." : "解約を確定する"}</span>
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </FormProvider>
   );
 };

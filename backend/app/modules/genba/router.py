@@ -5,21 +5,22 @@ REST API routes for Genba worksites.
 """
 
 import uuid
-from typing import Annotated, Generic, TypeVar, Union
-from fastapi import APIRouter, Depends, Response, status
+from typing import Annotated, Generic, TypeVar, Union, cast
+
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel
 
-from app.core.dependencies import DbSession, CurrentUser, require_permission
-from app.core.pagination import PaginationParams, PaginatedResponse, build_paginated_response
+from app.core.dependencies import CurrentUser, DbSession, require_permission
+from app.core.pagination import PaginatedResponse, PaginationParams, build_paginated_response
 from app.core.permissions import Permission
-from app.modules.genba.service import GenbaService
 from app.modules.genba.schemas import (
-    GenbaCreate,
-    GenbaUpdate,
-    GenbaResponse,
-    GenbaDetailResponse,
     DuplicateWarningResponse,
+    GenbaCreate,
+    GenbaDetailResponse,
+    GenbaResponse,
+    GenbaUpdate,
 )
+from app.modules.genba.service import GenbaService
 
 T = TypeVar("T")
 
@@ -40,8 +41,11 @@ async def list_genbas(
     db: DbSession,
     pagination: Annotated[PaginationParams, Depends()],
     status: str | None = None,
-    customer_id: uuid.UUID | None = None,
+    customer_ids: list[uuid.UUID] | None = Query(None),
+    staff_id: str | None = Query(None),
     search: str | None = None,
+    has_periodic: bool | None = Query(None, description="Lọc genba có hợp đồng định kỳ"),
+    periodic_month: int | None = Query(None, ge=1, le=12, description="Lọc theo tháng hợp đồng định kỳ"),
 ) -> PaginatedResponse[GenbaResponse]:
     """
     List all Genba worksites with filters and pagination.
@@ -54,10 +58,13 @@ async def list_genbas(
         skip=pagination.offset,
         limit=pagination.limit,
         status=status,
-        customer_id=customer_id,
+        customer_ids=customer_ids,
+        staff_id=staff_id,
         search_query=search,
+        has_periodic=has_periodic,
+        periodic_month=periodic_month,
     )
-    return build_paginated_response(list(items), total, pagination)
+    return cast(PaginatedResponse[GenbaResponse], build_paginated_response(list(items), total, pagination))
 
 
 @router.post(
@@ -71,7 +78,7 @@ async def create_genba(
     data: GenbaCreate,
     current_user: CurrentUser,
     response: Response,
-) -> Union[DataEnvelope[GenbaResponse], DuplicateWarningResponse]:
+) -> DataEnvelope[GenbaResponse] | DuplicateWarningResponse:
     """
     Create a new Genba worksite.
     

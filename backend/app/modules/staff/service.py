@@ -12,7 +12,8 @@ from sqlalchemy import select, and_
 from app.core.exceptions import ConflictError, NotFoundError, DuplicateError
 from app.modules.staff.models import StaffModel
 from app.modules.genba.models import GenbaStaffAssignmentModel, GenbaModel
-from app.modules.staff.repository import StaffRepository
+from app.modules.staff.repository import StaffRepository, PositionRepository
+from app.modules.staff.models_position import PositionModel
 from app.modules.staff.schemas import StaffCreate, StaffUpdate
 
 
@@ -26,10 +27,11 @@ class StaffService:
         limit: int = 100,
         is_active: bool | None = None,
         search_query: str | None = None,
+        role: str | None = None,
     ) -> tuple[Sequence[StaffModel], int]:
         """List staff members with filters and count."""
         return await StaffRepository.list_staff(
-            db, skip=skip, limit=limit, is_active=is_active, search_query=search_query
+            db, skip=skip, limit=limit, is_active=is_active, search_query=search_query, role=role
         )
 
     @staticmethod
@@ -67,6 +69,12 @@ class StaffService:
         updated_staff = await StaffRepository.update(db, staff, data)
         await db.refresh(updated_staff)
         return updated_staff
+
+    @staticmethod
+    async def delete_staff(db: AsyncSession, staff_id: uuid.UUID) -> None:
+        """Delete a staff member or raise 404."""
+        staff = await StaffService.get_staff(db, staff_id)
+        await StaffRepository.delete(db, staff)
 
     # =============================================================================
     # Assignment Logic
@@ -137,7 +145,6 @@ class StaffService:
                 )
 
         assignment = await StaffRepository.assign_staff(db, genba_id, staff_id, role_type)
-        await db.refresh(assignment)
         return assignment
 
     @staticmethod
@@ -153,3 +160,33 @@ class StaffService:
             raise NotFoundError("割当情報")
 
         await StaffRepository.unassign_staff(db, assignment)
+
+class PositionService:
+    @staticmethod
+    async def list_positions(db: AsyncSession) -> Sequence[PositionModel]:
+        return await PositionRepository.list_positions(db)
+
+    @staticmethod
+    async def create_position(db: AsyncSession, data) -> PositionModel:
+        existing = await PositionRepository.get_by_name(db, data.name)
+        if existing:
+            raise DuplicateError("役職名", "name")
+        return await PositionRepository.create(db, data)
+        
+    @staticmethod
+    async def update_position(db: AsyncSession, pos_id: uuid.UUID, data) -> PositionModel:
+        pos = await PositionRepository.get_by_id(db, pos_id)
+        if not pos:
+            raise NotFoundError("役職")
+        if data.name is not None and data.name != pos.name:
+            existing = await PositionRepository.get_by_name(db, data.name)
+            if existing:
+                raise DuplicateError("役職名", "name")
+        return await PositionRepository.update(db, pos, data)
+
+    @staticmethod
+    async def delete_position(db: AsyncSession, pos_id: uuid.UUID) -> None:
+        pos = await PositionRepository.get_by_id(db, pos_id)
+        if not pos:
+            raise NotFoundError("役職")
+        await PositionRepository.delete(db, pos)

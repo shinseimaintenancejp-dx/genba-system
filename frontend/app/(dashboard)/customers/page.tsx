@@ -8,9 +8,11 @@ import {
   useUpdateCustomer,
   useCreateCustomerContact,
   useUpdateCustomerContact,
-  useDeleteCustomerContact
+  useDeleteCustomerContact,
+  useReorderCustomers
 } from "@/hooks/useCustomers";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { SortableCustomerList } from "@/components/SortableCustomerList";
 import { 
   Building2, 
   Phone, 
@@ -69,11 +71,12 @@ export default function CustomersPage() {
   const [deleteContactConfirm, setDeleteContactConfirm] = useState<CustomerContact | null>(null);
 
   // Queries & Mutations
-  const { data: customerList, isLoading: isLoadingList } = useCustomers({ search: search || undefined });
+  const { data: customerList, isLoading: isLoadingList } = useCustomers({ search: search || undefined, limit: 1000 });
   const { data: customerDetail, isLoading: isLoadingDetail } = useCustomerDetail(selectedCustomerId || "");
 
   const createCustomerMutation = useCreateCustomer();
   const updateCustomerMutation = useUpdateCustomer();
+  const reorderCustomerMutation = useReorderCustomers();
   const createContactMutation = useCreateCustomerContact(selectedCustomerId || "");
   const updateContactMutation = useUpdateCustomerContact(selectedCustomerId || "");
   const deleteContactMutation = useDeleteCustomerContact(selectedCustomerId || "");
@@ -231,15 +234,18 @@ export default function CustomersPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column: Customers List */}
         <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-1">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="取引先名で検索..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-            />
+          <div className="w-full">
+            <label className="block text-xs font-medium text-slate-600 mb-1">取引先名・検索</label>
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="取引先名で検索..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-10 rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1 overflow-y-auto max-h-[600px] pr-1">
@@ -252,30 +258,19 @@ export default function CustomersPage() {
                 取引先が見つかりません。
               </p>
             ) : (
-              customerList?.items.map((cust) => (
-                <button
-                  key={cust.id}
-                  onClick={() => setSelectedCustomerId(cust.id)}
-                  className={`flex flex-col text-left p-3.5 rounded-lg border text-sm transition-all ${
-                    selectedCustomerId === cust.id
-                      ? "border-blue-200 bg-blue-50/50 hover:bg-blue-50"
-                      : "border-slate-100 bg-white hover:bg-slate-50"
-                  }`}
-                >
-                  <span className="font-semibold text-slate-800 line-clamp-1">
-                    {cust.full_name}
-                  </span>
-                  {cust.branch_name && (
-                    <span className="text-xs text-slate-500 mt-1 line-clamp-1">
-                      {cust.branch_name}
-                    </span>
-                  )}
-                  <span className="text-xs text-slate-400 mt-1.5 flex items-center gap-1.5">
-                    <Building className="h-3 w-3 shrink-0" />
-                    {cust.short_name}
-                  </span>
-                </button>
-              ))
+              <SortableCustomerList
+                items={customerList?.items || []}
+                selectedId={selectedCustomerId}
+                onSelect={setSelectedCustomerId}
+                isDragEnabled={!search}
+                onReorder={(newItems) => {
+                  const itemsToUpdate = newItems.map((item, index) => ({
+                    id: item.id,
+                    display_order: index,
+                  }));
+                  reorderCustomerMutation.mutate(itemsToUpdate);
+                }}
+              />
             )}
           </div>
         </div>

@@ -6,7 +6,7 @@ import {
   useUsers,
   useCreateUser,
   useUpdateUser,
-  useDeactivateUser,
+  useDeleteUser,
   type UserRecord,
   type CreateUserPayload,
 } from "@/hooks/useUsers";
@@ -19,7 +19,9 @@ import {
   Loader2,
   ShieldCheck,
   PencilLine,
+  Trash2,
 } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
 
 // ─── Role badge colors ────────────────────────────────────────────────────────
 
@@ -49,21 +51,35 @@ interface CreateDialogProps {
 
 function CreateUserDialog({ onClose }: CreateDialogProps) {
   const createUser = useCreateUser();
-  const [form, setForm] = useState<CreateUserPayload>({
+  const [form, setForm] = useState({
     username: "",
-    full_name: "",
+    last_name: "",
+    first_name: "",
+    phone: "",
     password: "",
+    passwordConfirm: "",
     role: "INTERNAL_STAFF",
     email: "",
+    is_active: true,
   });
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (form.password !== form.passwordConfirm) {
+      setError("パスワードが一致しません。");
+      return;
+    }
     try {
       const payload: CreateUserPayload = {
-        ...form,
+        username: form.username,
+        last_name: form.last_name,
+        first_name: form.first_name,
+        phone: form.phone?.trim() || undefined,
+        password: form.password,
+        role: form.role,
+        is_active: form.is_active,
         email: form.email?.trim() || undefined,
       };
       await createUser.mutateAsync(payload);
@@ -74,124 +90,186 @@ function CreateUserDialog({ onClose }: CreateDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-blue-600" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">新規ユーザー作成</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              ユーザー名 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="create-username"
-              required
-              minLength={3}
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="例: yamada_taro"
-            />
+    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[95vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+          {/* Header */}
+          <div className="shrink-0 border-b border-slate-100 bg-white p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                <ShieldCheck className="h-5 w-5 text-blue-600" />
+              </div>
+              <Dialog.Title className="text-xl font-bold text-slate-900">
+                新規ユーザー作成
+              </Dialog.Title>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              氏名 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="create-fullname"
-              required
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="例: 山田 太郎"
-            />
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <form id="create-user-form" onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  ユーザー名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={3}
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: yamada_taro"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    姓 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.last_name}
+                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="例: 山田"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.first_name}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="例: 太郎"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: yamada@shinsei.co.jp"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  電話番号
+                </label>
+                <input
+                  type="text"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 090-1234-5678"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  初期パスワード <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="8文字以上"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  パスワード再入力 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={form.passwordConfirm}
+                  onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="もう一度パスワードを入力"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  権限ロール <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {ALL_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r] ?? r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  状態 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.is_active ? "active" : "inactive"}
+                  onChange={(e) => setForm({ ...form, is_active: e.target.value === "active" })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="active">有効</option>
+                  <option value="inactive">無効</option>
+                </select>
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+            </form>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              メールアドレス
-            </label>
-            <input
-              type="email"
-              id="create-email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="例: yamada@shinsei.co.jp"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              初期パスワード <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              id="create-password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="8文字以上"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              権限ロール <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="create-role"
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {ALL_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r] ?? r}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          <div className="flex gap-3 pt-2">
+          {/* Footer */}
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50 p-6 flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              id="create-user-submit"
+              form="create-user-form"
               disabled={createUser.isPending}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm"
             >
-              {createUser.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : null}
+              {createUser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               作成する
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -204,17 +282,44 @@ interface EditDialogProps {
 
 function EditUserDialog({ user, onClose }: EditDialogProps) {
   const updateUser = useUpdateUser();
-  const [role, setRole] = useState(user.role);
-  const [fullName, setFullName] = useState(user.full_name);
+  const [form, setForm] = useState({
+    last_name: user.last_name,
+    first_name: user.first_name,
+    email: user.email ?? "",
+    phone: user.phone ?? "",
+    role: user.role,
+    is_active: user.is_active,
+    password: "",
+    passwordConfirm: "",
+  });
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (form.password || form.passwordConfirm) {
+      if (form.password !== form.passwordConfirm) {
+        setError("パスワードが一致しません。");
+        return;
+      }
+      if (form.password.length < 8) {
+        setError("パスワードは8文字以上にしてください。");
+        return;
+      }
+    }
+
     try {
       await updateUser.mutateAsync({
         id: user.id,
-        data: { role, full_name: fullName },
+        data: {
+          last_name: form.last_name,
+          first_name: form.first_name,
+          phone: form.phone?.trim() || undefined,
+          email: form.email?.trim() || undefined,
+          role: form.role,
+          is_active: form.is_active,
+          password: form.password ? form.password : undefined,
+        },
       });
       onClose();
     } catch {
@@ -223,71 +328,227 @@ function EditUserDialog({ user, onClose }: EditDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
-            <PencilLine className="h-5 w-5 text-amber-600" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">ユーザー編集</h2>
-            <p className="text-sm text-slate-500">@{user.username}</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">氏名</label>
-            <input
-              type="text"
-              id="edit-fullname"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[95vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+          {/* Header */}
+          <div className="shrink-0 border-b border-slate-100 bg-white p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
+                <PencilLine className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <Dialog.Title className="text-xl font-bold text-slate-900">
+                  ユーザー編集
+                </Dialog.Title>
+                <p className="text-sm text-slate-500">@{user.username}</p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">権限ロール</label>
-            <select
-              id="edit-role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {ALL_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r] ?? r}
-                </option>
-              ))}
-            </select>
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <form id="edit-user-form" onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    姓 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.last_name}
+                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.first_name}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">メールアドレス</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">電話番号</label>
+                <input
+                  type="text"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">権限ロール</label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {ALL_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r] ?? r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">状態</label>
+                <select
+                  value={form.is_active ? "active" : "inactive"}
+                  onChange={(e) => setForm({ ...form, is_active: e.target.value === "active" })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="active">有効</option>
+                  <option value="inactive">無効</option>
+                </select>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-sm font-medium text-slate-700 mb-3">パスワード変更 (任意)</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      新しいパスワード
+                    </label>
+                    <input
+                      type="password"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="変更する場合のみ入力 (8文字以上)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      新しいパスワード再入力
+                    </label>
+                    <input
+                      type="password"
+                      value={form.passwordConfirm}
+                      onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="もう一度入力"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+              )}
+            </form>
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <div className="flex gap-3 pt-2">
+          {/* Footer */}
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50 p-6 flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              id="edit-user-submit"
+              form="edit-user-form"
               disabled={updateUser.isPending}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm"
             >
               {updateUser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               保存する
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+// ─── Delete Confirm Dialog ──────────────────────────────────────────────────────
+
+interface DeleteConfirmDialogProps {
+  user: UserRecord;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  isDeleting: boolean;
+}
+
+function DeleteConfirmDialog({ user, onClose, onConfirm, isDeleting }: DeleteConfirmDialogProps) {
+  const fullName = `${user.last_name} ${user.first_name}`;
+
+  return (
+    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex w-full max-w-sm -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+          {/* Header */}
+          <div className="shrink-0 border-b border-slate-100 bg-white p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <Dialog.Title className="text-lg font-bold text-slate-900">
+                  ユーザー削除の確認
+                </Dialog.Title>
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 text-sm text-slate-600">
+            <p>
+              「<span className="font-semibold text-slate-900">{fullName}</span>」のアカウントを完全に削除しますか？
+            </p>
+            <p className="mt-2 text-red-600 font-medium">
+              この操作は元に戻せません。
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50 p-6 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isDeleting}
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60 transition-colors shadow-sm"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              削除する
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -295,24 +556,31 @@ function EditUserDialog({ user, onClose }: EditDialogProps) {
 
 export default function AdminUsersPage() {
   const { data, isLoading, error } = useUsers();
-  const deactivateUser = useDeactivateUser();
+  const deleteUser = useDeleteUser();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<UserRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRecord | null>(null);
   const [filterRole, setFilterRole] = useState<string>("all");
 
   const filtered = (data?.users ?? []).filter((u) => {
+    const fullName = `${u.last_name} ${u.first_name}`;
     const matchSearch =
-      u.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.username.toLowerCase().includes(search.toLowerCase()) ||
       (u.email ?? "").toLowerCase().includes(search.toLowerCase());
     const matchRole = filterRole === "all" || u.role === filterRole;
     return matchSearch && matchRole;
   });
 
-  const handleDeactivate = async (user: UserRecord) => {
-    if (!confirm(`「${user.full_name}」のアカウントを無効化しますか？`)) return;
-    await deactivateUser.mutateAsync(user.id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteUser.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch {
+      // Error handled by mutation or global handler
+    }
   };
 
   return (
@@ -327,7 +595,6 @@ export default function AdminUsersPage() {
             </p>
           </div>
           <button
-            id="open-create-user-dialog"
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 active:scale-95 transition-all shadow-sm"
           >
@@ -337,31 +604,35 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              id="user-search"
-              type="text"
-              placeholder="氏名・ユーザー名・メールで検索..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            />
+        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end">
+          <div className="w-full sm:w-[36rem]">
+            <label className="block text-xs font-medium text-slate-600 mb-1">フリーワード検索</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="氏名・ユーザー名・メールで検索..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+              />
+            </div>
           </div>
-          <select
-            id="user-role-filter"
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="all">全ロール</option>
-            {ALL_ROLES.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABELS[r] ?? r}
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-48">
+            <label className="block text-xs font-medium text-slate-600 mb-1">権限ロール</label>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            >
+              <option value="all">すべて</option>
+              {ALL_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABELS[r] ?? r}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Table */}
@@ -386,7 +657,7 @@ export default function AdminUsersPage() {
                 <tr className="border-b border-slate-100 bg-slate-50">
                   <th className="text-left px-6 py-3 font-medium text-slate-500">氏名</th>
                   <th className="text-left px-6 py-3 font-medium text-slate-500">ユーザー名</th>
-                  <th className="text-left px-6 py-3 font-medium text-slate-500">メール</th>
+                  <th className="text-left px-6 py-3 font-medium text-slate-500">電話番号</th>
                   <th className="text-left px-6 py-3 font-medium text-slate-500">権限</th>
                   <th className="text-left px-6 py-3 font-medium text-slate-500">ステータス</th>
                   <th className="text-left px-6 py-3 font-medium text-slate-500">最終ログイン</th>
@@ -400,10 +671,10 @@ export default function AdminUsersPage() {
                     className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors"
                   >
                     <td className="px-6 py-4 font-medium text-slate-900">
-                      {user.full_name}
+                      {user.last_name} {user.first_name}
                     </td>
                     <td className="px-6 py-4 text-slate-500">@{user.username}</td>
-                    <td className="px-6 py-4 text-slate-500">{user.email ?? "—"}</td>
+                    <td className="px-6 py-4 text-slate-500">{user.phone ?? "—"}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
@@ -446,22 +717,19 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          id={`edit-user-${user.id}`}
                           onClick={() => setEditTarget(user)}
                           className="rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
                         >
                           編集
                         </button>
-                        {user.is_active && (
-                          <button
-                            id={`deactivate-user-${user.id}`}
-                            onClick={() => handleDeactivate(user)}
-                            disabled={deactivateUser.isPending}
-                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50"
-                          >
-                            無効化
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setDeleteTarget(user)}
+                          disabled={deleteUser.isPending}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          削除
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -476,6 +744,14 @@ export default function AdminUsersPage() {
       {showCreate && <CreateUserDialog onClose={() => setShowCreate(false)} />}
       {editTarget && (
         <EditUserDialog user={editTarget} onClose={() => setEditTarget(null)} />
+      )}
+      {deleteTarget && (
+        <DeleteConfirmDialog
+          user={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+          isDeleting={deleteUser.isPending}
+        />
       )}
     </RoleGuard>
   );

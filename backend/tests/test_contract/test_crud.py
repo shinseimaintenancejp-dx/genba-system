@@ -216,6 +216,7 @@ class TestContractCRUD:
         await client.post(
             "/api/v1/contracts",
             json={
+                "contract_name": "Test Contract 1",
                 "contract_type": "ORDERING",
                 "service_type": "日常清掃",
                 "amount": 50000,
@@ -233,6 +234,7 @@ class TestContractCRUD:
         await client.post(
             "/api/v1/contracts",
             json={
+                "contract_name": "Test Contract 2",
                 "contract_type": "ORDERING",
                 "service_type": "日常清掃",
                 "amount": 70000,
@@ -250,7 +252,8 @@ class TestContractCRUD:
         p1_user = UserModel(
             id=uuid.uuid4(),
             username="p1_user_scoped",
-            full_name="P1担当者",
+            last_name="P1",
+            first_name="担当者",
             hashed_password=hash_password("TestPassword@2026"),
             role="PARTNER",
             related_entity_id=uuid.UUID(p1_id),
