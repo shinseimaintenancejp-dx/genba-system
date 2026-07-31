@@ -5,21 +5,22 @@ Data access object for contracts (契約).
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Sequence
-from sqlalchemy import select, func, or_, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
-from sqlalchemy.orm import selectinload, joinedload
-from app.modules.genba.models import GenbaModel, GenbaStaffAssignmentModel
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.modules.contract.models import (
-    ContractModel,
-    ContractWorkSlotModel,
-    ContractWorkerCountModel,
     ContractHolidayRuleModel,
+    ContractModel,
     ContractPeriodicScheduleModel,
     ContractPeriodicWorkContentModel,
+    ContractWorkerCountModel,
+    ContractWorkSlotModel,
 )
+from app.modules.genba.models import GenbaModel, GenbaStaffAssignmentModel
 
 
 class ContractRepository:
@@ -61,9 +62,9 @@ class ContractRepository:
     @staticmethod
     async def generate_next_internal_code(db: AsyncSession) -> str:
         """Generate the next sequence-based internal contract code: CTR-YYYYMM-XXXX."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         prefix = f"CTR-{now.strftime('%Y%m')}-"
-        
+
         stmt = (
             select(ContractModel.internal_code)
             .where(ContractModel.internal_code.like(f"{prefix}%"))
@@ -72,7 +73,7 @@ class ContractRepository:
         )
         result = await db.execute(stmt)
         last_code = result.scalar_one_or_none()
-        
+
         if last_code:
             try:
                 seq_str = last_code.split("-")[-1]
@@ -81,7 +82,7 @@ class ContractRepository:
                 next_seq = 1
         else:
             next_seq = 1
-            
+
         return f"{prefix}{next_seq:04d}"
 
     @staticmethod
@@ -97,7 +98,7 @@ class ContractRepository:
         partner_id: uuid.UUID | None = None,
         search_query: str | None = None,
         service_category: str | None = None,
-        staff_id: uuid.UUID | None = None,
+        staff_id: str | None = None,
         periodic_month: int | None = None,
     ) -> Sequence[ContractModel]:
         """List all contracts with filters and pagination, ordered by Genba name."""
@@ -110,12 +111,12 @@ class ContractRepository:
                 joinedload(ContractModel.partner),
             )
         )
-        
-        if staff_id:
-            query = query.join(GenbaStaffAssignmentModel, ContractModel.genba_id == GenbaStaffAssignmentModel.genba_id)
-            
+
         if periodic_month:
-            query = query.join(ContractPeriodicScheduleModel, ContractModel.id == ContractPeriodicScheduleModel.contract_id)
+            query = query.join(
+                ContractPeriodicScheduleModel,
+                ContractModel.id == ContractPeriodicScheduleModel.contract_id,
+            )
 
         filters = []
 
@@ -133,8 +134,23 @@ class ContractRepository:
             filters.append(ContractModel.partner_id == partner_id)
         if service_category:
             filters.append(ContractModel.service_category == service_category)
-        if staff_id:
-            filters.append(GenbaStaffAssignmentModel.staff_id == staff_id)
+        if staff_id == "UNASSIGNED" or staff_id == "unassigned":
+            filters.append(
+                ~select(GenbaStaffAssignmentModel.genba_id)
+                .where(GenbaStaffAssignmentModel.genba_id == ContractModel.genba_id)
+                .exists()
+            )
+        elif staff_id:
+            try:
+                s_uuid = uuid.UUID(staff_id)
+                filters.append(
+                    select(GenbaStaffAssignmentModel.genba_id)
+                    .where(GenbaStaffAssignmentModel.staff_id == s_uuid)
+                    .where(GenbaStaffAssignmentModel.genba_id == ContractModel.genba_id)
+                    .exists()
+                )
+            except ValueError:
+                pass
         if periodic_month:
             filters.append(ContractPeriodicScheduleModel.work_months.contains([periodic_month]))
         if search_query:
@@ -172,17 +188,21 @@ class ContractRepository:
         partner_id: uuid.UUID | None = None,
         search_query: str | None = None,
         service_category: str | None = None,
-        staff_id: uuid.UUID | None = None,
+        staff_id: str | None = None,
         periodic_month: int | None = None,
     ) -> int:
         """Count total contracts matching criteria."""
-        query = select(func.count()).select_from(ContractModel).outerjoin(GenbaModel, ContractModel.genba_id == GenbaModel.id)
-        
-        if staff_id:
-            query = query.join(GenbaStaffAssignmentModel, ContractModel.genba_id == GenbaStaffAssignmentModel.genba_id)
-            
+        query = (
+            select(func.count())
+            .select_from(ContractModel)
+            .outerjoin(GenbaModel, ContractModel.genba_id == GenbaModel.id)
+        )
+
         if periodic_month:
-            query = query.join(ContractPeriodicScheduleModel, ContractModel.id == ContractPeriodicScheduleModel.contract_id)
+            query = query.join(
+                ContractPeriodicScheduleModel,
+                ContractModel.id == ContractPeriodicScheduleModel.contract_id,
+            )
 
         filters = []
 
@@ -200,8 +220,23 @@ class ContractRepository:
             filters.append(ContractModel.partner_id == partner_id)
         if service_category:
             filters.append(ContractModel.service_category == service_category)
-        if staff_id:
-            filters.append(GenbaStaffAssignmentModel.staff_id == staff_id)
+        if staff_id == "UNASSIGNED" or staff_id == "unassigned":
+            filters.append(
+                ~select(GenbaStaffAssignmentModel.genba_id)
+                .where(GenbaStaffAssignmentModel.genba_id == ContractModel.genba_id)
+                .exists()
+            )
+        elif staff_id:
+            try:
+                s_uuid = uuid.UUID(staff_id)
+                filters.append(
+                    select(GenbaStaffAssignmentModel.genba_id)
+                    .where(GenbaStaffAssignmentModel.staff_id == s_uuid)
+                    .where(GenbaStaffAssignmentModel.genba_id == ContractModel.genba_id)
+                    .exists()
+                )
+            except ValueError:
+                pass
         if periodic_month:
             filters.append(ContractPeriodicScheduleModel.work_months.contains([periodic_month]))
         if search_query:
@@ -267,7 +302,9 @@ class ContractRepository:
         contract.worker_counts = worker_counts if worker_counts is not None else []
         contract.holiday_rules = holiday_rules if holiday_rules is not None else []
         contract.periodic_schedule = periodic_schedule
-        contract.periodic_work_contents = periodic_work_contents if periodic_work_contents is not None else []
+        contract.periodic_work_contents = (
+            periodic_work_contents if periodic_work_contents is not None else []
+        )
 
         db.add(contract)
         await db.flush()
@@ -285,7 +322,7 @@ class ContractRepository:
         clear_periodic: bool = False,
     ) -> ContractModel:
         """Update a contract by replacing its nested records using soft delete."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Soft delete các bản ghi cũ trước
         if work_slots is not None:

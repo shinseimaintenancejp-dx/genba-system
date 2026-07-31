@@ -10,32 +10,33 @@ Router updated accordingly: ContractService.method() → contract_service.method
 
 import json
 import uuid
-from typing import Sequence
-from decimal import Decimal
+from collections.abc import Sequence
 from datetime import datetime, time
+from decimal import Decimal
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_service
 from app.core.exceptions import NotFoundError, ValidationError
-from app.modules.contract.repository import ContractRepository
-from app.modules.contract.schemas import ContractCreate, ContractUpdate
 from app.modules.contract.models import (
-    ContractModel,
-    ContractWorkSlotModel,
-    ContractWorkerCountModel,
     ContractHolidayRuleModel,
+    ContractModel,
     ContractPeriodicScheduleModel,
     ContractPeriodicWorkContentModel,
+    ContractWorkerCountModel,
+    ContractWorkSlotModel,
 )
+from app.modules.contract.repository import ContractRepository
+from app.modules.contract.schemas import ContractCreate, ContractUpdate
 
 
 class ContractService:
     """Service class encapsulating business operations for contracts."""
 
-    async def get_contract(self, db: AsyncSession, contract_id: uuid.UUID, user_id: str) -> ContractModel:
+    async def get_contract(
+        self, db: AsyncSession, contract_id: uuid.UUID, user_id: str
+    ) -> ContractModel:
         """Get contract by ID, raises NotFoundError if not found, logs view event."""
         contract = await ContractRepository.get_with_relations(db, contract_id)
         if not contract:
@@ -63,7 +64,7 @@ class ContractService:
         partner_id: uuid.UUID | None = None,
         search_query: str | None = None,
         service_category: str | None = None,
-        staff_id: uuid.UUID | None = None,
+        staff_id: str | None = None,
         periodic_month: int | None = None,
     ) -> tuple[Sequence[ContractModel], int]:
         """List contracts with filters and pagination."""
@@ -103,41 +104,48 @@ class ContractService:
             return None
         t1 = datetime.combine(datetime.today(), start_time)
         t2 = datetime.combine(datetime.today(), end_time)
-        
+
         diff = t2 - t1
         hours = diff.total_seconds() / 3600
         if hours < 0:
-            hours += 24 # Handle crossing midnight
+            hours += 24  # Handle crossing midnight
         return Decimal(str(round(hours, 2)))
 
-    def _calculate_slot_duration(self, start_time: time, end_time: time, break_minutes: int) -> Decimal:
+    def _calculate_slot_duration(
+        self, start_time: time, end_time: time, break_minutes: int
+    ) -> Decimal:
         """Calculate work duration in hours for a slot: (end - start) - break."""
         t1 = datetime.combine(datetime.today(), start_time)
         t2 = datetime.combine(datetime.today(), end_time)
         diff = (t2 - t1).total_seconds()
         if diff < 0:
             diff += 24 * 3600  # Handle crossing midnight
-        
+
         duration_minutes = (diff / 60) - break_minutes
         if duration_minutes < 0:
             duration_minutes = 0
-            
+
         return Decimal(str(round(duration_minutes / 60, 2)))
 
-    async def _check_duplicate_contract_name(self, db: AsyncSession, name: str, genba_id: uuid.UUID, exclude_id: uuid.UUID | None = None) -> None:
+    async def _check_duplicate_contract_name(
+        self, db: AsyncSession, name: str, genba_id: uuid.UUID, exclude_id: uuid.UUID | None = None
+    ) -> None:
         """Check if contract name already exists in the same genba."""
         stmt = select(ContractModel).where(
-            ContractModel.contract_name == name,
-            ContractModel.genba_id == genba_id
+            ContractModel.contract_name == name, ContractModel.genba_id == genba_id
         )
         if exclude_id:
             stmt = stmt.where(ContractModel.id != exclude_id)
-            
+
         result = await db.execute(stmt)
         if result.first():
-            raise ValidationError("contract_name", "この契約名は既に存在しています。別の名前を入力してください。")
+            raise ValidationError(
+                "contract_name", "この契約名は既に存在しています。別の名前を入力してください。"
+            )
 
-    async def create_contract(self, db: AsyncSession, data: ContractCreate, user_id: str) -> ContractModel:
+    async def create_contract(
+        self, db: AsyncSession, data: ContractCreate, user_id: str
+    ) -> ContractModel:
         """Create a new contract and validate business rules."""
         # Rule 1: validate contract dates
         if data.end_date and data.start_date > data.end_date:
@@ -146,20 +154,24 @@ class ContractService:
         # Rule 2: validate contract type specific columns
         if data.contract_type == "RECEIVING":
             if not data.customer_id:
-                raise ValidationError("customer_id", "元請契約の場合は顧客（取引先）を選択してください")
+                raise ValidationError(
+                    "customer_id", "元請契約の場合は顧客（取引先）を選択してください"
+                )
             if data.partner_id:
                 raise ValidationError("partner_id", "元請契約の場合、協力会社は選択できません")
         elif data.contract_type == "ORDERING":
             if not data.partner_id:
                 raise ValidationError("partner_id", "下請契約の場合は協力会社を選択してください")
             if data.customer_id:
-                raise ValidationError("customer_id", "下請契約の場合、顧客（取引先）は選択できません")
+                raise ValidationError(
+                    "customer_id", "下請契約の場合、顧客（取引先）は選択できません"
+                )
         else:
             raise ValidationError("contract_type", "無効な契約タイプです")
 
         # Generate internal sequence code
         internal_code = await ContractRepository.generate_next_internal_code(db)
-        
+
         # Check duplicate contract name (contract_name is always set by validator, guard for type safety)
         contract_name = data.contract_name
         if contract_name:
@@ -174,8 +186,10 @@ class ContractService:
             for idx, slot in enumerate(data.work_slots):
                 slot_duration = slot.work_duration_hours
                 if slot_duration is None and slot.start_time and slot.end_time:
-                    slot_duration = self._calculate_slot_duration(slot.start_time, slot.end_time, slot.break_minutes)
-                    
+                    slot_duration = self._calculate_slot_duration(
+                        slot.start_time, slot.end_time, slot.break_minutes
+                    )
+
                 work_slots_db.append(
                     ContractWorkSlotModel(
                         start_time=slot.start_time,
@@ -197,7 +211,7 @@ class ContractService:
                         sort_order=count.sort_order if count.sort_order else idx,
                     )
                 )
-                
+
         holiday_rules_db = []
         if data.holiday_rules:
             for hr in data.holiday_rules:
@@ -232,7 +246,9 @@ class ContractService:
         if not duration and data.work_slots and len(data.work_slots) > 0:
             first_slot = sorted(data.work_slots, key=lambda x: x.sort_order)[0]
             if first_slot.start_time and first_slot.end_time:
-                duration = self._calculate_slot_duration(first_slot.start_time, first_slot.end_time, first_slot.break_minutes)
+                duration = self._calculate_slot_duration(
+                    first_slot.start_time, first_slot.end_time, first_slot.break_minutes
+                )
             elif first_slot.work_duration_hours is not None:
                 duration = first_slot.work_duration_hours
 
@@ -273,7 +289,7 @@ class ContractService:
         )
 
         created_contract = await ContractRepository.create_with_relations(
-            db, 
+            db,
             contract,
             work_slots=work_slots_db if work_slots_db else None,
             worker_counts=worker_counts_db if worker_counts_db else None,
@@ -325,14 +341,20 @@ class ContractService:
         }
 
         if data.contract_name is not None:
-            await self._check_duplicate_contract_name(db, data.contract_name, contract.genba_id, exclude_id=contract.id)
+            await self._check_duplicate_contract_name(
+                db, data.contract_name, contract.genba_id, exclude_id=contract.id
+            )
 
         # Apply updates
         update_data = data.model_dump(exclude_unset=True)
-        
+
         # Handle duration logic manually if legacy flat times are updated
         if "work_start_time" in update_data or "work_end_time" in update_data:
-            st = data.work_start_time if data.work_start_time is not None else contract.work_start_time
+            st = (
+                data.work_start_time
+                if data.work_start_time is not None
+                else contract.work_start_time
+            )
             et = data.work_end_time if data.work_end_time is not None else contract.work_end_time
             update_data["work_duration_hours"] = self._calculate_duration(st, et)
 
@@ -343,8 +365,10 @@ class ContractService:
             for idx, slot in enumerate(data.work_slots):
                 slot_duration = slot.work_duration_hours
                 if slot_duration is None and slot.start_time and slot.end_time:
-                    slot_duration = self._calculate_slot_duration(slot.start_time, slot.end_time, slot.break_minutes)
-                    
+                    slot_duration = self._calculate_slot_duration(
+                        slot.start_time, slot.end_time, slot.break_minutes
+                    )
+
                 work_slots_db.append(
                     ContractWorkSlotModel(
                         start_time=slot.start_time,
@@ -354,7 +378,7 @@ class ContractService:
                         sort_order=slot.sort_order if slot.sort_order else idx,
                     )
                 )
-                
+
             # Recalculate duration if replacing slots
             if len(data.work_slots) > 0:
                 first_slot = sorted(data.work_slots, key=lambda x: x.sort_order)[0]
@@ -413,9 +437,15 @@ class ContractService:
                         sort_order=item.sort_order if item.sort_order else idx,
                     )
                 )
-                
+
         # Exclude nested data from setattr loop
-        for field in ["work_slots", "worker_counts", "holiday_rules", "periodic_schedule", "periodic_work_contents"]:
+        for field in [
+            "work_slots",
+            "worker_counts",
+            "holiday_rules",
+            "periodic_schedule",
+            "periodic_work_contents",
+        ]:
             update_data.pop(field, None)
 
         for field, value in update_data.items():
@@ -423,8 +453,12 @@ class ContractService:
 
         # Log chi tiết các nested records bị soft-deleted
         if data.holiday_rules is not None:
-            old_holiday_rules = [{"rule_type": r.rule_type, "action": r.action} for r in contract.holiday_rules]
-            new_holiday_rules = [{"rule_type": hr.rule_type, "action": hr.action} for hr in data.holiday_rules]
+            old_holiday_rules = [
+                {"rule_type": r.rule_type, "action": r.action} for r in contract.holiday_rules
+            ]
+            new_holiday_rules = [
+                {"rule_type": hr.rule_type, "action": hr.action} for hr in data.holiday_rules
+            ]
             await audit_service.log(
                 session=db,
                 action="UPDATE",
@@ -467,19 +501,17 @@ class ContractService:
         full_contract = await ContractRepository.get_with_relations(db, contract.id)
         return full_contract if full_contract else contract
 
-    async def delete_contract(
-        self, db: AsyncSession, id: uuid.UUID, user_id: str
-    ) -> None:
+    async def delete_contract(self, db: AsyncSession, id: uuid.UUID, user_id: str) -> None:
         """Delete an existing contract."""
         contract = await self.get_contract(db, id, user_id)
-        
+
         old_val = {
             "status": contract.status,
             "amount": float(contract.amount),
             "service_type": contract.service_type,
         }
         await ContractRepository.delete_contract(db, contract)
-        
+
         await audit_service.log(
             session=db,
             action="DELETE",
