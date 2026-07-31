@@ -604,7 +604,7 @@ export default function PeriodicGenbaListPage() {
             <div className="shrink-0 flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50/50">
               {selectedContractForModal?.genba_id ? (
                 <Link
-                  href={`/genba/${selectedContractForModal.genba_id}/periodic`}
+                  href={`/genba/${selectedContractForModal.genba_id}/periodic?contractId=${selectedContractForModal.id}`}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E60F2] hover:underline"
                 >
                   <span>現場詳細画面を開く</span>

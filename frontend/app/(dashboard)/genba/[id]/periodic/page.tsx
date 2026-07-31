@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import React, { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   usePeriodicPlans,
   useCreatePeriodicPlan,
@@ -39,7 +39,9 @@ const FISCAL_MONTHS = [
 
 export default function PeriodicCleaningPlansPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const genbaId = params.id as string;
+  const targetContractId = searchParams.get("contractId");
 
   const { data: user } = useCurrentUser();
   const canEdit = user && ["ADMIN", "SENIOR_STAFF", "INTERNAL_STAFF"].includes(user.role);
@@ -62,6 +64,26 @@ export default function PeriodicCleaningPlansPage() {
   // Dialog States
   const [expandedContractIds, setExpandedContractIds] = useState<Set<string>>(new Set());
   const [expandedPlanIds, setExpandedPlanIds] = useState<Record<string, boolean>>({});
+
+  // Auto expand and scroll to target contract if contractId is present in URL
+  useEffect(() => {
+    if (!targetContractId || !contractsData?.items) return;
+
+    setExpandedContractIds((prev) => {
+      const next = new Set(prev);
+      next.add(targetContractId);
+      return next;
+    });
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`contract-${targetContractId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [targetContractId, contractsData]);
   
   // Contract form states
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
@@ -341,7 +363,7 @@ export default function PeriodicCleaningPlansPage() {
             }
 
             return (
-              <div key={contract.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div key={contract.id} id={`contract-${contract.id}`} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div 
                   className={`p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50 border-b border-blue-100' : 'hover:bg-slate-50'}`}
                   onClick={() => toggleContract(contract.id)}
