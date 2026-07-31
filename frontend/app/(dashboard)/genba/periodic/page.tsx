@@ -35,18 +35,12 @@ export default function PeriodicGenbaListPage() {
   const [selectedContractForModal, setSelectedContractForModal] = useState<ContractWithRelations | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
 
-  // Restore search params from sessionStorage on initial load if URL has no search params
+  // Set default periodicMonth to currentMonth on initial load if URL has no search params
   useEffect(() => {
     if (typeof window !== "undefined") {
       const currentParams = searchParams.toString();
       if (!currentParams) {
-        const savedParams = sessionStorage.getItem("genba_periodic_list_params");
-        if (savedParams) {
-          router.replace(`${pathname}?${savedParams}`, { scroll: false });
-        } else {
-          // If no saved params, set the default month
-          updateUrl({ periodicMonth: currentMonth });
-        }
+        updateUrl({ periodicMonth: currentMonth });
       } else {
         sessionStorage.setItem("genba_periodic_list_params", currentParams);
       }
