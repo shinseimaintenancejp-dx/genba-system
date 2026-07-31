@@ -109,6 +109,8 @@ class ContractRepository:
                 joinedload(ContractModel.genba),
                 joinedload(ContractModel.customer),
                 joinedload(ContractModel.partner),
+                selectinload(ContractModel.periodic_schedule),
+                selectinload(ContractModel.periodic_work_contents),
             )
         )
 
