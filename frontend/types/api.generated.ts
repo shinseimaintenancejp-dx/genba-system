@@ -293,6 +293,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/genba/master/daily-work-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Daily Work Types
+         * @description List all active daily work types (master data).
+         */
+        get: operations["list_daily_work_types_api_v1_genba_master_daily_work_types_get"];
+        put?: never;
+        /**
+         * Create Daily Work Type
+         * @description Create a new daily work type.
+         */
+        post: operations["create_daily_work_type_api_v1_genba_master_daily_work_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/genba/master/daily-work-types/{type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Daily Work Type
+         * @description Update a daily work type.
+         */
+        put: operations["update_daily_work_type_api_v1_genba_master_daily_work_types__type_id__put"];
+        post?: never;
+        /**
+         * Delete Daily Work Type
+         * @description Soft-delete a daily work type.
+         */
+        delete: operations["delete_daily_work_type_api_v1_genba_master_daily_work_types__type_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/genba/master/frequencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Frequencies
+         * @description List all active frequencies (master data).
+         */
+        get: operations["list_frequencies_api_v1_genba_master_frequencies_get"];
+        put?: never;
+        /**
+         * Create Frequency
+         * @description Create a new frequency.
+         */
+        post: operations["create_frequency_api_v1_genba_master_frequencies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/genba/master/frequencies/{freq_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Frequency
+         * @description Update a frequency.
+         */
+        put: operations["update_frequency_api_v1_genba_master_frequencies__freq_id__put"];
+        post?: never;
+        /**
+         * Delete Frequency
+         * @description Soft-delete a frequency.
+         */
+        delete: operations["delete_frequency_api_v1_genba_master_frequencies__freq_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/genba/{id}/memos": {
         parameters: {
             query?: never;
@@ -911,6 +1007,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contracts/reports/profit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Profit Report
+         * @description Get profit report by genba for a specific month.
+         */
+        get: operations["get_profit_report_api_v1_contracts_reports_profit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/contracts": {
         parameters: {
             query?: never;
@@ -929,6 +1045,26 @@ export interface paths {
          * @description Create a new contract.
          */
         post: operations["create_contract_api_v1_contracts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/available-receiving": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Available Receiving Contracts By Genba
+         * @description List RECEIVING contracts for a specific genba, used when creating a new ORDERING contract.
+         */
+        get: operations["list_available_receiving_contracts_by_genba_api_v1_contracts_available_receiving_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -963,6 +1099,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contracts/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Contract History
+         * @description Get audit history for a specific contract.
+         */
+        get: operations["get_contract_history_api_v1_contracts__id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/contracts/{id}/upload-pdf": {
         parameters: {
             query?: never;
@@ -978,6 +1134,74 @@ export interface paths {
          */
         post: operations["upload_contract_pdf_api_v1_contracts__id__upload_pdf_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{id}/ordering-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ordering Links
+         * @description List all RECEIVING contracts linked to an ORDERING contract.
+         */
+        get: operations["list_ordering_links_api_v1_contracts__id__ordering_links_get"];
+        put?: never;
+        /**
+         * Create Ordering Link
+         * @description Create a new link between an ORDERING contract and a RECEIVING contract.
+         */
+        post: operations["create_ordering_link_api_v1_contracts__id__ordering_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{id}/available-receiving-contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Available Receiving Contracts
+         * @description List RECEIVING contracts (same genba) not yet linked to this ORDERING contract.
+         */
+        get: operations["list_available_receiving_contracts_api_v1_contracts__id__available_receiving_contracts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{id}/ordering-links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Ordering Link
+         * @description Update an ordering link's assignment type, amount, or work items.
+         */
+        put: operations["update_ordering_link_api_v1_contracts__id__ordering_links__link_id__put"];
+        post?: never;
+        /**
+         * Delete Ordering Link
+         * @description Remove an ordering link (and its work items) from an ORDERING contract.
+         */
+        delete: operations["delete_ordering_link_api_v1_contracts__id__ordering_links__link_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1574,6 +1798,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AvailableReceivingContractItem
+         * @description Brief representation of a RECEIVING contract available for linking.
+         */
+        AvailableReceivingContractItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Internal Code */
+            internal_code: string;
+            /** Contract Name */
+            contract_name: string;
+            /** Amount */
+            amount: string;
+            /** Service Category */
+            service_category: string;
+            /** Work Items */
+            work_items?: components["schemas"]["PeriodicWorkContentResponse"][];
+        };
         /** Body_add_memo_attachment_api_v1_genba__id__memos__mid__attachments_post */
         Body_add_memo_attachment_api_v1_genba__id__memos__mid__attachments_post: {
             /**
@@ -1840,6 +2085,11 @@ export interface components {
              */
             service_category: string;
             /**
+             * Initial Status
+             * @default DRAFT
+             */
+            initial_status: string;
+            /**
              * Weekly Frequency
              * @description Weekly work frequency
              */
@@ -1878,6 +2128,13 @@ export interface components {
             periodic_schedule?: components["schemas"]["PeriodicScheduleCreate"] | null;
             /** Periodic Work Contents */
             periodic_work_contents?: components["schemas"]["PeriodicWorkContentCreate"][] | null;
+            /** Daily Work Contents */
+            daily_work_contents?: components["schemas"]["DailyWorkContentCreate"][] | null;
+            /**
+             * Ordering Links
+             * @description Links to RECEIVING contracts (for ORDERING contracts)
+             */
+            ordering_links?: components["schemas"]["OrderingLinkCreate"][] | null;
         };
         /**
          * ContractDailyBriefResponse
@@ -2020,6 +2277,10 @@ export interface components {
             periodic_schedule?: components["schemas"]["PeriodicScheduleResponse"] | null;
             /** Periodic Work Contents */
             periodic_work_contents?: components["schemas"]["PeriodicWorkContentResponse"][] | null;
+            /** Daily Work Contents */
+            daily_work_contents?: components["schemas"]["DailyWorkContentResponse"][] | null;
+            /** Ordering Links */
+            ordering_links?: components["schemas"]["OrderingLinkResponse"][] | null;
             /** Genba Name */
             genba_name?: string | null;
             /** Customer Name */
@@ -2073,6 +2334,8 @@ export interface components {
             work_start_time?: string | null;
             /** Work End Time */
             work_end_time?: string | null;
+            /** Partner Id */
+            partner_id?: string | null;
             /** Contract Pdf Url */
             contract_pdf_url?: string | null;
             /** Work Type */
@@ -2092,6 +2355,10 @@ export interface components {
             periodic_schedule?: components["schemas"]["PeriodicScheduleCreate"] | null;
             /** Periodic Work Contents */
             periodic_work_contents?: components["schemas"]["PeriodicWorkContentCreate"][] | null;
+            /** Daily Work Contents */
+            daily_work_contents?: components["schemas"]["DailyWorkContentCreate"][] | null;
+            /** Ordering Links */
+            ordering_links?: components["schemas"]["OrderingLinkCreate"][] | null;
         };
         /**
          * CreateUserRequest
@@ -2489,6 +2756,102 @@ export interface components {
             /** Special Notes */
             special_notes?: string | null;
         };
+        /**
+         * DailyWorkContentCreate
+         * @description Schema for creating a daily work content row.
+         */
+        DailyWorkContentCreate: {
+            /** Category */
+            category: string;
+            /** Area */
+            area: string;
+            /** Work Content */
+            work_content: string;
+            /** Frequency */
+            frequency: string;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /** DailyWorkContentResponse */
+        DailyWorkContentResponse: {
+            /** Category */
+            category: string;
+            /** Area */
+            area: string;
+            /** Work Content */
+            work_content: string;
+            /** Frequency */
+            frequency: string;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /**
+         * DailyWorkTypeCreate
+         * @description Request schema for creating a daily work type master entry.
+         */
+        DailyWorkTypeCreate: {
+            /**
+             * Name
+             * @description 作業内容名称
+             */
+            name: string;
+            /**
+             * Sort Order
+             * @description 表示順
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /**
+         * DailyWorkTypeResponse
+         * @description Response schema representing a daily work type master entry.
+         */
+        DailyWorkTypeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sort Order */
+            sort_order: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DailyWorkTypeUpdate
+         * @description Request schema for updating a daily work type master entry.
+         */
+        DailyWorkTypeUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
         /** DataEnvelope[CleaningAreaResponse] */
         DataEnvelope_CleaningAreaResponse_: {
             data: components["schemas"]["CleaningAreaResponse"];
@@ -2517,9 +2880,17 @@ export interface components {
         DataEnvelope_DailyCleaningTaskResponse_: {
             data: components["schemas"]["DailyCleaningTaskResponse"];
         };
+        /** DataEnvelope[DailyWorkTypeResponse] */
+        DataEnvelope_DailyWorkTypeResponse_: {
+            data: components["schemas"]["DailyWorkTypeResponse"];
+        };
         /** DataEnvelope[EntryExitResponse] */
         DataEnvelope_EntryExitResponse_: {
             data: components["schemas"]["EntryExitResponse"];
+        };
+        /** DataEnvelope[FrequencyResponse] */
+        DataEnvelope_FrequencyResponse_: {
+            data: components["schemas"]["FrequencyResponse"];
         };
         /** DataEnvelope[GenbaCustomHolidayResponse] */
         DataEnvelope_GenbaCustomHolidayResponse_: {
@@ -2609,6 +2980,16 @@ export interface components {
         DataEnvelope_list_DailyCleaningTaskResponse__: {
             /** Data */
             data: components["schemas"]["DailyCleaningTaskResponse"][];
+        };
+        /** DataEnvelope[list[DailyWorkTypeResponse]] */
+        DataEnvelope_list_DailyWorkTypeResponse__: {
+            /** Data */
+            data: components["schemas"]["DailyWorkTypeResponse"][];
+        };
+        /** DataEnvelope[list[FrequencyResponse]] */
+        DataEnvelope_list_FrequencyResponse__: {
+            /** Data */
+            data: components["schemas"]["FrequencyResponse"][];
         };
         /** DataEnvelope[list[GenbaCustomHolidayResponse]] */
         DataEnvelope_list_GenbaCustomHolidayResponse__: {
@@ -2707,6 +3088,62 @@ export interface components {
              * @description 安全注意事項
              */
             safety_notes?: string | null;
+        };
+        /**
+         * FrequencyCreate
+         * @description Request schema for creating a frequency master entry.
+         */
+        FrequencyCreate: {
+            /**
+             * Name
+             * @description 頻度名称
+             */
+            name: string;
+            /**
+             * Sort Order
+             * @description 表示順
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /**
+         * FrequencyResponse
+         * @description Response schema representing a frequency master entry.
+         */
+        FrequencyResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sort Order */
+            sort_order: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * FrequencyUpdate
+         * @description Request schema for updating a frequency master entry.
+         */
+        FrequencyUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
         };
         /**
          * GenbaBriefResponse
@@ -3560,6 +3997,145 @@ export interface components {
             /** Position */
             position?: string | null;
         };
+        /**
+         * OrderingLinkCreate
+         * @description Request schema for creating a new ordering link.
+         */
+        OrderingLinkCreate: {
+            /**
+             * Receiving Contract Id
+             * Format: uuid
+             */
+            receiving_contract_id: string;
+            /**
+             * Assignment Type
+             * @default PARTIAL
+             */
+            assignment_type: string;
+            /** Allocated Amount */
+            allocated_amount?: number | string | null;
+            /** Allocated Percentage */
+            allocated_percentage?: number | string | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Work Items */
+            work_items?: components["schemas"]["OrderingLinkWorkItemCreate"][];
+        };
+        /**
+         * OrderingLinkResponse
+         * @description Response schema for a single ordering link record.
+         */
+        OrderingLinkResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ordering Contract Id
+             * Format: uuid
+             */
+            ordering_contract_id: string;
+            /**
+             * Receiving Contract Id
+             * Format: uuid
+             */
+            receiving_contract_id: string;
+            /** Assignment Type */
+            assignment_type: string;
+            /** Allocated Amount */
+            allocated_amount?: string | null;
+            /** Allocated Percentage */
+            allocated_percentage?: string | null;
+            /** Remarks */
+            remarks?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Work Items */
+            work_items?: components["schemas"]["OrderingLinkWorkItemResponse"][];
+            /** Receiving Contract Name */
+            receiving_contract_name?: string | null;
+            /** Receiving Contract Code */
+            receiving_contract_code?: string | null;
+            /** Receiving Amount */
+            receiving_amount?: string | null;
+        };
+        /**
+         * OrderingLinkUpdate
+         * @description Request schema for updating an existing ordering link.
+         */
+        OrderingLinkUpdate: {
+            /** Assignment Type */
+            assignment_type?: string | null;
+            /** Allocated Amount */
+            allocated_amount?: number | string | null;
+            /** Allocated Percentage */
+            allocated_percentage?: number | string | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Work Items */
+            work_items?: components["schemas"]["OrderingLinkWorkItemCreate"][] | null;
+        };
+        /**
+         * OrderingLinkWorkItemCreate
+         * @description Schema for one work item entry within an ordering link.
+         */
+        OrderingLinkWorkItemCreate: {
+            /**
+             * Work Content Id
+             * Format: uuid
+             */
+            work_content_id: string;
+            /** Scope Detail */
+            scope_detail?: string | null;
+            /** Allocated Amount */
+            allocated_amount?: number | string | null;
+            /** Allocated Percentage */
+            allocated_percentage?: number | string | null;
+        };
+        /** OrderingLinkWorkItemResponse */
+        OrderingLinkWorkItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Link Id
+             * Format: uuid
+             */
+            link_id: string;
+            /**
+             * Work Content Id
+             * Format: uuid
+             */
+            work_content_id: string;
+            /** Scope Detail */
+            scope_detail?: string | null;
+            /** Allocated Amount */
+            allocated_amount?: string | null;
+            /** Allocated Percentage */
+            allocated_percentage?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Floor */
+            floor?: string | null;
+            /** Area */
+            area?: string | null;
+            /** Work Content */
+            work_content?: string | null;
+        };
         /** PaginatedResponse[ContractResponse] */
         PaginatedResponse_ContractResponse_: {
             /** Data */
@@ -4246,6 +4822,45 @@ export interface components {
             description?: string | null;
             /** Is Active */
             is_active?: boolean | null;
+        };
+        /** ProfitReportItem */
+        ProfitReportItem: {
+            /**
+             * Genba Id
+             * Format: uuid
+             */
+            genba_id: string;
+            /** Genba Name */
+            genba_name: string;
+            /** Revenue */
+            revenue: number;
+            /** Partner Cost */
+            partner_cost: number;
+            /** Inhouse Cost */
+            inhouse_cost: number;
+            /** Profit */
+            profit: number;
+            /** Profit Margin */
+            profit_margin: number;
+        };
+        /** ProfitReportResponse */
+        ProfitReportResponse: {
+            /** Year */
+            year: number;
+            /** Month */
+            month: number;
+            /** Total Revenue */
+            total_revenue: number;
+            /** Total Partner Cost */
+            total_partner_cost: number;
+            /** Total Inhouse Cost */
+            total_inhouse_cost: number;
+            /** Total Profit */
+            total_profit: number;
+            /** Total Profit Margin */
+            total_profit_margin: number;
+            /** Genbas */
+            genbas: components["schemas"]["ProfitReportItem"][];
         };
         /** QuotationCreate */
         QuotationCreate: {
@@ -5531,6 +6146,274 @@ export interface operations {
             header?: never;
             path: {
                 type_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_daily_work_types_api_v1_genba_master_daily_work_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_list_DailyWorkTypeResponse__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_daily_work_type_api_v1_genba_master_daily_work_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DailyWorkTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_DailyWorkTypeResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_daily_work_type_api_v1_genba_master_daily_work_types__type_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DailyWorkTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_DailyWorkTypeResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_daily_work_type_api_v1_genba_master_daily_work_types__type_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_frequencies_api_v1_genba_master_frequencies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_list_FrequencyResponse__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_frequency_api_v1_genba_master_frequencies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrequencyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_FrequencyResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_frequency_api_v1_genba_master_frequencies__freq_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                freq_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrequencyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataEnvelope_FrequencyResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_frequency_api_v1_genba_master_frequencies__freq_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                freq_id: string;
             };
             cookie?: {
                 access_token?: string | null;
@@ -7234,6 +8117,40 @@ export interface operations {
             };
         };
     };
+    get_profit_report_api_v1_contracts_reports_profit_get: {
+        parameters: {
+            query: {
+                year: number;
+                month: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfitReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_contracts_api_v1_contracts_get: {
         parameters: {
             query?: {
@@ -7300,6 +8217,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataEnvelope_ContractResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_available_receiving_contracts_by_genba_api_v1_contracts_available_receiving_get: {
+        parameters: {
+            query: {
+                genba_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailableReceivingContractItem"][];
                 };
             };
             /** @description Validation Error */
@@ -7414,6 +8364,39 @@ export interface operations {
             };
         };
     };
+    get_contract_history_api_v1_contracts__id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     upload_contract_pdf_api_v1_contracts__id__upload_pdf_post: {
         parameters: {
             query?: never;
@@ -7439,6 +8422,179 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DataEnvelope_dict_"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_ordering_links_api_v1_contracts__id__ordering_links_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderingLinkResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_ordering_link_api_v1_contracts__id__ordering_links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderingLinkCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderingLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_available_receiving_contracts_api_v1_contracts__id__available_receiving_contracts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailableReceivingContractItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_ordering_link_api_v1_contracts__id__ordering_links__link_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                link_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderingLinkUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderingLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_ordering_link_api_v1_contracts__id__ordering_links__link_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                link_id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

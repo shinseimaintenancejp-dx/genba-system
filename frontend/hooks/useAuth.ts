@@ -27,8 +27,9 @@ export const useCurrentUser = () => {
       if (axiosError?.response?.status === 401) return false;
       return failureCount < 2;
     },
-    // Refresh user data every 5 minutes
-    staleTime: 5 * 60 * 1000,
+    // Cache user session data for 15 minutes — user info rarely changes during a session.
+    // This reduces background refetch frequency, preventing intermittent full-page flash.
+    staleTime: 15 * 60 * 1000,
     // Don't throw on error — handle gracefully in components
     throwOnError: false,
   });

@@ -1,3 +1,5 @@
+import type { OrderingLinkCreatePayload } from "./orderingLink";
+
 export interface Contract {
   id: string;
   internal_code: string;
@@ -59,6 +61,15 @@ export interface Contract {
     work_content: string;
     sort_order: number;
   }[];
+  daily_work_contents?: {
+    id: string;
+    category: string;
+    area: string;
+    work_content: string;
+    frequency: string;
+    sort_order: number;
+  }[];
+  ordering_links?: any[];
 
   status: "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "EXPIRED" | "CANCELLED";
   genba_id: string;
@@ -154,11 +165,15 @@ export interface BaseContractCreatePayload {
   invoiceRequired: boolean;
   
   // Sprint 11 Common fields
+  initialStatus?: "DRAFT" | "ACTIVE";
   status?: string;
   contractPdfUrl?: string;
   workContentSummary?: string;
   weeklyFrequency?: number;
   workDays?: string;
+  
+  // Ordering Links (for ORDERING contracts)
+  orderingLinks?: OrderingLinkCreatePayload[];
   
   // Note: API payload mapper in useContract.ts will translate these camelCase properties
   // to snake_case format exactly as defined in Backend schemas.
@@ -169,6 +184,7 @@ export interface DailyContractCreatePayload extends BaseContractCreatePayload {
   workSlots: WorkSlot[];
   workerCounts: WorkerCount[];
   holidayRules: HolidayRule[];
+  dailyWorkContents?: any[];
 }
 
 export interface PeriodicContractCreatePayload extends BaseContractCreatePayload {

@@ -4,7 +4,7 @@
  * Wraps customer & contact API calls with TanStack Query v5 patterns.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post, put, del } from "@/lib/api";
 import { queryKeys } from "./queryKeys";
 import type { Customer, CustomerContact, CustomerDetail } from "@/types/customer";
@@ -35,6 +35,8 @@ export const useCustomers = (filters: ListCustomersFilters = {}) => {
     queryKey: queryKeys.customers.list(filters),
     queryFn: () => get<PaginatedResponse<Customer>>("/customers", { params: filters }),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    // Keep previous data visible while fetching new page/filter — prevents table flash
+    placeholderData: keepPreviousData,
   });
 };
 

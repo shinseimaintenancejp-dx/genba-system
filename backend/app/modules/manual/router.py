@@ -14,7 +14,13 @@ from app.core.dependencies import DbSession, CurrentUser, require_permission
 from app.core.pagination import PaginationParams, PaginatedResponse, build_paginated_response
 from app.core.permissions import Permission, Role
 from app.core.exceptions import ForbiddenError
-from app.modules.manual.service import ManualService, CleaningAreaService, PeriodicWorkTypeService
+from app.modules.manual.service import (
+    ManualService,
+    CleaningAreaService,
+    PeriodicWorkTypeService,
+    DailyWorkTypeService,
+    FrequencyService,
+)
 from app.modules.manual.schemas import (
     EntryExitResponse,
     EntryExitUpsert,
@@ -27,6 +33,12 @@ from app.modules.manual.schemas import (
     PeriodicWorkTypeResponse,
     PeriodicWorkTypeCreate,
     PeriodicWorkTypeUpdate,
+    DailyWorkTypeResponse,
+    DailyWorkTypeCreate,
+    DailyWorkTypeUpdate,
+    FrequencyResponse,
+    FrequencyCreate,
+    FrequencyUpdate,
     MemoResponse,
     MemoCreate,
     MemoUpdate,
@@ -210,6 +222,130 @@ async def delete_periodic_work_type(
     """Soft-delete a periodic work type."""
     await PeriodicWorkTypeService.delete(db, type_id)
     return DataEnvelope(data={"message": "日常清掃タスクを削除しました"})
+
+
+# =============================================================================
+# Daily Work Types (Master Data)
+# =============================================================================
+
+@router.get(
+    "/master/daily-work-types",
+    response_model=DataEnvelope[list[DailyWorkTypeResponse]],
+    dependencies=[Depends(require_permission(Permission.MANUAL_READ))],
+)
+async def list_daily_work_types(db: DbSession) -> DataEnvelope[list[DailyWorkTypeResponse]]:
+    """List all active daily work types (master data)."""
+    types = await DailyWorkTypeService.get_all(db)
+    return DataEnvelope(data=[DailyWorkTypeResponse.model_validate(t) for t in types])
+
+
+@router.post(
+    "/master/daily-work-types",
+    response_model=DataEnvelope[DailyWorkTypeResponse],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission(Permission.MANUAL_WRITE))],
+)
+async def create_daily_work_type(
+    db: DbSession,
+    data: DailyWorkTypeCreate,
+    current_user: CurrentUser,
+) -> DataEnvelope[DailyWorkTypeResponse]:
+    """Create a new daily work type."""
+    work_type = await DailyWorkTypeService.create(db, data)
+    return DataEnvelope(data=DailyWorkTypeResponse.model_validate(work_type))
+
+
+@router.put(
+    "/master/daily-work-types/{type_id}",
+    response_model=DataEnvelope[DailyWorkTypeResponse],
+    dependencies=[Depends(require_permission(Permission.MANUAL_WRITE))],
+)
+async def update_daily_work_type(
+    db: DbSession,
+    type_id: uuid.UUID,
+    data: DailyWorkTypeUpdate,
+    current_user: CurrentUser,
+) -> DataEnvelope[DailyWorkTypeResponse]:
+    """Update a daily work type."""
+    work_type = await DailyWorkTypeService.update(db, type_id, data)
+    return DataEnvelope(data=DailyWorkTypeResponse.model_validate(work_type))
+
+
+@router.delete(
+    "/master/daily-work-types/{type_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission(Permission.MANUAL_WRITE))],
+)
+async def delete_daily_work_type(
+    db: DbSession,
+    type_id: uuid.UUID,
+    current_user: CurrentUser,
+):
+    """Soft-delete a daily work type."""
+    await DailyWorkTypeService.delete(db, type_id)
+    return DataEnvelope(data={"message": "Deleted"})
+
+
+# =============================================================================
+# Frequencies (Master Data)
+# =============================================================================
+
+@router.get(
+    "/master/frequencies",
+    response_model=DataEnvelope[list[FrequencyResponse]],
+    dependencies=[Depends(require_permission(Permission.MANUAL_READ))],
+)
+async def list_frequencies(db: DbSession) -> DataEnvelope[list[FrequencyResponse]]:
+    """List all active frequencies (master data)."""
+    freqs = await FrequencyService.get_all(db)
+    return DataEnvelope(data=[FrequencyResponse.model_validate(f) for f in freqs])
+
+
+@router.post(
+    "/master/frequencies",
+    response_model=DataEnvelope[FrequencyResponse],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission(Permission.MANUAL_WRITE))],
+)
+async def create_frequency(
+    db: DbSession,
+    data: FrequencyCreate,
+    current_user: CurrentUser,
+) -> DataEnvelope[FrequencyResponse]:
+    """Create a new frequency."""
+    freq = await FrequencyService.create(db, data)
+    return DataEnvelope(data=FrequencyResponse.model_validate(freq))
+
+
+@router.put(
+    "/master/frequencies/{freq_id}",
+    response_model=DataEnvelope[FrequencyResponse],
+    dependencies=[Depends(require_permission(Permission.MANUAL_WRITE))],
+)
+async def update_frequency(
+    db: DbSession,
+    freq_id: uuid.UUID,
+    data: FrequencyUpdate,
+    current_user: CurrentUser,
+) -> DataEnvelope[FrequencyResponse]:
+    """Update a frequency."""
+    freq = await FrequencyService.update(db, freq_id, data)
+    return DataEnvelope(data=FrequencyResponse.model_validate(freq))
+
+
+@router.delete(
+    "/master/frequencies/{freq_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission(Permission.MANUAL_WRITE))],
+)
+async def delete_frequency(
+    db: DbSession,
+    freq_id: uuid.UUID,
+    current_user: CurrentUser,
+):
+    """Soft-delete a frequency."""
+    await FrequencyService.delete(db, freq_id)
+    return DataEnvelope(data={"message": "Deleted"})
 
 
 # =============================================================================

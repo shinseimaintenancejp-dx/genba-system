@@ -154,6 +154,64 @@ class CleaningAreaResponse(BaseSchema):
 
 
 # =============================================================================
+# Daily Work Types (Master Data)
+# =============================================================================
+class DailyWorkTypeCreate(BaseSchema):
+    """Request schema for creating a daily work type master entry."""
+
+    name: str = Field(..., min_length=1, max_length=100, description="作業内容名称")
+    sort_order: int = Field(default=0, ge=0, description="表示順")
+
+
+class DailyWorkTypeUpdate(BaseSchema):
+    """Request schema for updating a daily work type master entry."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    sort_order: int | None = Field(default=None, ge=0)
+    is_active: bool | None = Field(default=None)
+
+
+class DailyWorkTypeResponse(BaseSchema):
+    """Response schema representing a daily work type master entry."""
+
+    id: uuid.UUID
+    name: str
+    sort_order: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+# =============================================================================
+# Frequencies (Master Data)
+# =============================================================================
+class FrequencyCreate(BaseSchema):
+    """Request schema for creating a frequency master entry."""
+
+    name: str = Field(..., min_length=1, max_length=100, description="頻度名称")
+    sort_order: int = Field(default=0, ge=0, description="表示順")
+
+
+class FrequencyUpdate(BaseSchema):
+    """Request schema for updating a frequency master entry."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    sort_order: int | None = Field(default=None, ge=0)
+    is_active: bool | None = Field(default=None)
+
+
+class FrequencyResponse(BaseSchema):
+    """Response schema representing a frequency master entry."""
+
+    id: uuid.UUID
+    name: str
+    sort_order: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+# =============================================================================
 # Periodic Work Types (Master Data)
 # =============================================================================
 class PeriodicWorkTypeCreate(BaseSchema):

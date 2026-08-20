@@ -85,6 +85,18 @@ class PeriodicWorkContentResponse(PeriodicWorkContentCreate):
     id: uuid.UUID
     model_config = ConfigDict(from_attributes=True)
 
+class DailyWorkContentCreate(BaseModel):
+    """Schema for creating a daily work content row."""
+    category: str = Field(min_length=1, max_length=50)
+    area: str = Field(min_length=1, max_length=200)
+    work_content: str = Field(min_length=1, max_length=200)
+    frequency: str = Field(min_length=1, max_length=100)
+    sort_order: int = Field(default=0)
+
+class DailyWorkContentResponse(DailyWorkContentCreate):
+    id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class ContractBase(BaseModel):
@@ -117,12 +129,21 @@ class ContractCreate(ContractBase):
     # Sprint 5: Contract name and categorization
     contract_name: str | None = Field(default=None, max_length=200, description="Contract name")
     service_category: str = Field(default="OTHER", description="DAILY / PERIODIC / OTHER")
+    
+    initial_status: str = Field(default="DRAFT", max_length=20)
 
     @model_validator(mode="after")
     def default_contract_name(self):
         """Auto-fill contract_name from service_type when not provided."""
         if not self.contract_name:
             self.contract_name = self.service_type or "契約"
+        return self
+
+    @model_validator(mode="after")
+    def validate_initial_status(self):
+        allowed = ("DRAFT", "ACTIVE")
+        if self.initial_status and self.initial_status not in allowed:
+            raise ValueError(f"ステータスは DRAFT または ACTIVE のみ許可されています")
         return self
 
     # Sprint 5: Schedule information (Deprecated for new inserts but kept for compatibility)
@@ -144,6 +165,8 @@ class ContractCreate(ContractBase):
     holiday_rules: list[HolidayRuleCreate] | None = Field(default=None)
     periodic_schedule: PeriodicScheduleCreate | None = Field(default=None)
     periodic_work_contents: list[PeriodicWorkContentCreate] | None = Field(default=None)
+    daily_work_contents: list[DailyWorkContentCreate] | None = Field(default=None)
+    ordering_links: list["OrderingLinkCreate"] | None = Field(default=None, description="Links to RECEIVING contracts (for ORDERING contracts)")
 
     @model_validator(mode="after")
     def validate_service_category_logic(self):
@@ -190,6 +213,10 @@ class ContractUpdate(BaseModel):
     work_days: str | None = Field(default=None, max_length=50)
     work_start_time: time | None = Field(default=None)
     work_end_time: time | None = Field(default=None)
+    partner_id: uuid.UUID | None = Field(default=None)
+    genba_id: uuid.UUID | None = Field(default=None)
+    customer_id: uuid.UUID | None = Field(default=None)
+    contract_type: str | None = Field(default=None)
 
     # Sprint 11: DB-04 new columns
     contract_pdf_url: str | None = Field(default=None, max_length=500)
@@ -204,6 +231,8 @@ class ContractUpdate(BaseModel):
     holiday_rules: list[HolidayRuleCreate] | None = Field(default=None)
     periodic_schedule: PeriodicScheduleCreate | None = Field(default=None)
     periodic_work_contents: list[PeriodicWorkContentCreate] | None = Field(default=None)
+    daily_work_contents: list[DailyWorkContentCreate] | None = Field(default=None)
+    ordering_links: list["OrderingLinkCreate"] | None = Field(default=None)
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +263,20 @@ class _MinimalPartner(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+
+class CancelWithLinksPayload(BaseModel):
+    end_date: date = Field(..., description="Date of cancellation")
+
+class LinkedOrderingContractResponse(BaseModel):
+    id: uuid.UUID
+    contract_name: str
+    internal_code: str
+    status: str
+    partner_id: uuid.UUID | None
+    
+    # Partner info directly attached for convenience
+    partner_name: str | None = None
+
 class ContractResponse(ContractBase):
     """Response schema representing a contract."""
 
@@ -241,6 +284,7 @@ class ContractResponse(ContractBase):
     internal_code: str
     status: str
     genba_id: uuid.UUID
+    customer_id: uuid.UUID | None = Field(default=None)
     customer_id: uuid.UUID | None
     partner_id: uuid.UUID | None
     created_by: uuid.UUID | None
@@ -269,6 +313,8 @@ class ContractResponse(ContractBase):
     holiday_rules: list[HolidayRuleResponse] | None = None
     periodic_schedule: PeriodicScheduleResponse | None = None
     periodic_work_contents: list[PeriodicWorkContentResponse] | None = None
+    daily_work_contents: list[DailyWorkContentResponse] | None = None
+    ordering_links: list["OrderingLinkResponse"] | None = None
 
     # Pydantic v2 fix: Declare ORM relations explicitly so Pydantic reads them
     # via from_attributes=True. Field(exclude=True) hides them from JSON output.
@@ -330,3 +376,174 @@ class ContractBriefResponse(BaseModel):
     work_duration_hours: float | None = None
 
     model_config = ConfigDict(from_attributes=True, strict=True)
+
+
+# ==============================================================================
+# Ordering Link Schemas (Subcontracting — N:N)
+# ==============================================================================
+
+class OrderingLinkWorkItemCreate(BaseModel):
+    """Schema for one work item entry within an ordering link."""
+    work_content_id: uuid.UUID
+    # Sub-scope for shared work items (e.g. "1F~8F" when two partners split floors).
+    # NULL means the full work item is delegated.
+    scope_detail: str | None = Field(default=None, max_length=200)
+    allocated_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
+    allocated_percentage: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
+
+
+class _MinimalWorkContent(BaseModel):
+    floor: str
+    area: str
+    work_content: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderingLinkWorkItemResponse(BaseModel):
+    id: uuid.UUID
+    link_id: uuid.UUID
+    work_content_id: uuid.UUID
+    scope_detail: str | None = None
+    allocated_amount: Decimal | None = None
+    allocated_percentage: Decimal | None = None
+    created_at: datetime
+
+    # Flat display fields (populated by validator from work_content relation)
+    floor: str | None = None
+    area: str | None = None
+    work_content: str | None = None
+
+    # ORM relation (excluded from JSON, used by model_validator)
+    work_content_rel: "_MinimalWorkContent | None" = Field(default=None, exclude=True)
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def populate_work_content_fields(self):
+        """Extract floor/area/work_content from nested ORM relation if available."""
+        if self.work_content_rel is not None:
+            self.floor = self.work_content_rel.floor
+            self.area = self.work_content_rel.area
+            self.work_content = self.work_content_rel.work_content
+        return self
+
+
+class OrderingLinkCreate(BaseModel):
+    """Request schema for creating a new ordering link."""
+    receiving_contract_id: uuid.UUID
+    # FULL = delegate all work items of this RECEIVING contract
+    # PARTIAL = only specific items (must provide work_items)
+    assignment_type: str = Field(default="PARTIAL", pattern="^(FULL|PARTIAL)$")
+    allocated_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
+    allocated_percentage: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
+    remarks: str | None = Field(default=None, max_length=500)
+    work_items: list[OrderingLinkWorkItemCreate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_partial_requires_items(self):
+        if self.assignment_type == "PARTIAL" and not self.work_items:
+            raise ValueError("一部委託（PARTIAL）の場合、作業項目を1件以上選択してください。")
+        if self.assignment_type == "FULL" and self.work_items:
+            raise ValueError("全面委託（FULL）の場合、作業項目の個別指定は不要です。")
+        return self
+
+
+class OrderingLinkUpdate(BaseModel):
+    """Request schema for updating an existing ordering link."""
+    assignment_type: str | None = Field(default=None, pattern="^(FULL|PARTIAL)$")
+    allocated_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
+    allocated_percentage: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("100"))
+    remarks: str | None = Field(default=None, max_length=500)
+    # When provided, fully replaces the existing work_items list for this link
+    work_items: list[OrderingLinkWorkItemCreate] | None = Field(default=None)
+
+
+class _MinimalReceivingContract(BaseModel):
+    """Minimal representation of a receiving contract for relation extraction."""
+    contract_name: str | None = None
+    internal_code: str | None = None
+    amount: Decimal | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderingLinkResponse(BaseModel):
+    """Response schema for a single ordering link record."""
+    id: uuid.UUID
+    ordering_contract_id: uuid.UUID
+    receiving_contract_id: uuid.UUID
+    assignment_type: str
+    allocated_amount: Decimal | None = None
+    allocated_percentage: Decimal | None = None
+    remarks: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    work_items: list[OrderingLinkWorkItemResponse] = Field(default_factory=list)
+
+    # Flat display fields extracted from related RECEIVING contract
+    receiving_contract_name: str | None = None
+    receiving_contract_code: str | None = None
+    receiving_amount: Decimal | None = None
+
+    # ORM relation (excluded from JSON, used by model_validator)
+    receiving_contract: "_MinimalReceivingContract | None" = Field(default=None, exclude=True)
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def compute_receiving_fields(self):
+        """Auto-populate flat receiving fields from ORM relationship."""
+        if self.receiving_contract is not None:
+            if not self.receiving_contract_name:
+                self.receiving_contract_name = self.receiving_contract.contract_name
+            if not self.receiving_contract_code:
+                self.receiving_contract_code = self.receiving_contract.internal_code
+            if self.receiving_amount is None:
+                self.receiving_amount = self.receiving_contract.amount
+        return self
+
+
+class AvailableReceivingContractItem(BaseModel):
+    """Brief representation of a RECEIVING contract available for linking."""
+    id: uuid.UUID
+    internal_code: str
+    contract_name: str
+    amount: Decimal
+    service_category: str
+    work_content_summary: str | None = None
+    work_type: str | None = None
+    sub_service_type: str | None = None
+    work_execution_date: date | None = None
+    start_date: date
+    end_date: date | None = None
+    work_items: list[PeriodicWorkContentResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+# ==============================================================================
+# Profit Report Schemas
+# ==============================================================================
+
+class ProfitReportItem(BaseModel):
+    genba_id: uuid.UUID
+    customer_id: uuid.UUID | None = Field(default=None)
+    genba_name: str
+    revenue: float
+    partner_cost: float
+    inhouse_cost: float
+    profit: float
+    profit_margin: float
+
+class ProfitReportResponse(BaseModel):
+    year: int
+    month: int
+    total_revenue: float
+    total_partner_cost: float
+    total_inhouse_cost: float
+    total_profit: float
+    total_profit_margin: float
+    genbas: list[ProfitReportItem]
+
+
+ContractCreate.model_rebuild()

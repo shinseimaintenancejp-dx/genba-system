@@ -6,12 +6,14 @@ interface ContractTypeSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (type: "DAILY" | "PERIODIC" | "OTHER") => void;
+  excludeDaily?: boolean;
 }
 
 export const ContractTypeSelector: React.FC<ContractTypeSelectorProps> = ({
   open,
   onOpenChange,
   onSelect,
+  excludeDaily = false,
 }) => {
   const handleSelect = (type: "DAILY" | "PERIODIC" | "OTHER") => {
     onSelect(type);
@@ -40,6 +42,7 @@ export const ContractTypeSelector: React.FC<ContractTypeSelectorProps> = ({
           
           <div className="grid gap-4">
             {/* DAILY */}
+            {!excludeDaily && (
             <button
               type="button"
               onClick={() => handleSelect("DAILY")}
@@ -55,6 +58,7 @@ export const ContractTypeSelector: React.FC<ContractTypeSelectorProps> = ({
                 </p>
               </div>
             </button>
+            )}
 
             {/* PERIODIC */}
             <button

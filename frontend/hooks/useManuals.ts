@@ -468,3 +468,140 @@ export const useDeletePeriodicWorkType = () => {
   });
 };
 
+
+// =============================================================================
+// Daily Work Types (Master Data — Global)
+// =============================================================================
+
+export interface DailyWorkTypeResponse {
+  id: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyWorkTypeCreatePayload {
+  name: string;
+  sort_order?: number;
+}
+
+export interface DailyWorkTypeUpdatePayload {
+  name?: string;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+/** Fetch all active daily work types (global master list). */
+export const useDailyWorkTypes = () => {
+  return useQuery({
+    queryKey: queryKeys.dailyWorkTypes.list(),
+    queryFn: () => get<DailyWorkTypeResponse[]>("/genba/master/daily-work-types"),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/** Create a new daily work type. */
+export const useCreateDailyWorkType = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: DailyWorkTypeCreatePayload) =>
+      post<DailyWorkTypeResponse>("/genba/master/daily-work-types", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailyWorkTypes.list() });
+    },
+  });
+};
+
+/** Update an existing daily work type. */
+export const useUpdateDailyWorkType = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: DailyWorkTypeUpdatePayload }) =>
+      put<DailyWorkTypeResponse>(`/genba/master/daily-work-types/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailyWorkTypes.list() });
+    },
+  });
+};
+
+/** Soft-delete a daily work type. */
+export const useDeleteDailyWorkType = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => del<void>(`/genba/master/daily-work-types/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailyWorkTypes.list() });
+    },
+  });
+};
+
+
+// =============================================================================
+// Frequencies (Master Data — Global)
+// =============================================================================
+
+export interface FrequencyResponse {
+  id: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FrequencyCreatePayload {
+  name: string;
+  sort_order?: number;
+}
+
+export interface FrequencyUpdatePayload {
+  name?: string;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+/** Fetch all active frequencies (global master list). */
+export const useFrequencies = () => {
+  return useQuery({
+    queryKey: queryKeys.frequencies.list(),
+    queryFn: () => get<FrequencyResponse[]>("/genba/master/frequencies"),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/** Create a new frequency. */
+export const useCreateFrequency = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: FrequencyCreatePayload) =>
+      post<FrequencyResponse>("/genba/master/frequencies", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.frequencies.list() });
+    },
+  });
+};
+
+/** Update an existing frequency. */
+export const useUpdateFrequency = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: FrequencyUpdatePayload }) =>
+      put<FrequencyResponse>(`/genba/master/frequencies/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.frequencies.list() });
+    },
+  });
+};
+
+/** Soft-delete a frequency. */
+export const useDeleteFrequency = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => del<void>(`/genba/master/frequencies/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.frequencies.list() });
+    },
+  });
+};

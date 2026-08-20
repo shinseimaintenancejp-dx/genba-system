@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 
 interface PeriodicScheduleEditorProps {
   name: string; // e.g. "periodicSchedule"
+  readOnly?: boolean;
 }
 
-export const PeriodicScheduleEditor: React.FC<PeriodicScheduleEditorProps> = ({ name }) => {
+export const PeriodicScheduleEditor: React.FC<PeriodicScheduleEditorProps> = ({ name, readOnly = false }) => {
   const { control, watch, setValue, getValues } = useFormContext();
 
   const workMonths = watch(`${name}.workMonths`) || [];
@@ -30,6 +31,7 @@ export const PeriodicScheduleEditor: React.FC<PeriodicScheduleEditorProps> = ({ 
   }, [workMonths.length, name, setValue]);
 
   const toggleMonth = (month: number, currentSelected: number[], onChange: (val: number[]) => void) => {
+    if (readOnly) return;
     const isSelected = currentSelected.includes(month);
     if (isSelected) {
       onChange(currentSelected.filter((m) => m !== month).sort((a, b) => a - b));
@@ -70,12 +72,13 @@ export const PeriodicScheduleEditor: React.FC<PeriodicScheduleEditorProps> = ({ 
                     <button
                       key={`month-${month}`}
                       type="button"
+                      disabled={readOnly}
                       onClick={() => toggleMonth(month, selected, field.onChange)}
                       className={`h-10 rounded-lg border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         isSelected
                           ? "bg-[#1E60F2] text-white border-[#1E60F2]"
                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
+                      } ${readOnly ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
                       {month}月
                     </button>

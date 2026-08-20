@@ -79,7 +79,7 @@ const LoginPage = () => {
         <h1 className="text-2xl font-bold text-white tracking-tight">
           現場管理システム
         </h1>
-        <p className="text-slate-400 text-sm mt-1">株式会社Shinsei</p>
+        <p className="text-slate-400 text-sm mt-1">株式会社シンセイ</p>
       </div>
 
       {/* Login Card */}

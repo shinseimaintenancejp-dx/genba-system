@@ -40,22 +40,28 @@ const ComboboxField = ({ value, onChange, options, placeholder, disabled, onAddN
 
   return (
     <div className="relative" ref={wrapperRef}>
-      <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden focus-within:ring-1 focus-within:ring-[#1E60F2]">
-        <input
-          type="text"
-          placeholder={placeholder}
-          value={search}
-          disabled={disabled}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            onChange(e.target.value);
-            setIsOpen(true);
-          }}
-          onFocus={() => setIsOpen(true)}
-          className="h-10 px-3 w-full text-sm outline-none disabled:opacity-60 bg-transparent"
-        />
-        <ChevronDown className={`h-4 w-4 text-slate-400 mr-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </div>
+      {disabled ? (
+        <div className="px-3 py-2.5 w-full rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 break-all leading-snug">
+          {search || <span className="text-slate-400">{placeholder}</span>}
+        </div>
+      ) : (
+        <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden focus-within:ring-1 focus-within:ring-[#1E60F2]">
+          <input
+            type="text"
+            placeholder={placeholder}
+            value={search}
+            title={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              onChange(e.target.value);
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            className="h-10 px-3 w-full text-sm outline-none bg-transparent"
+          />
+          <ChevronDown className={`h-4 w-4 text-slate-400 mr-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      )}
       
       {isOpen && !disabled && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -97,14 +103,17 @@ const ComboboxField = ({ value, onChange, options, placeholder, disabled, onAddN
 
 interface PeriodicWorkContentEditorProps {
   name: string; // "periodicWorkContents"
+  readOnly?: boolean;
 }
 
-export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps> = ({ name }) => {
-  const { control, register, formState: { errors }, setValue } = useFormContext();
+export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps> = ({ name, readOnly = false }) => {
+  const { control, register, formState: { errors }, setValue, watch } = useFormContext();
   const { fields, append, remove, insert } = useFieldArray({
     control,
     name,
   });
+
+  const isOrdering = watch("contractType") === "ORDERING";
 
   const { data: areasData, isLoading: isLoadingAreas } = useCleaningAreas();
   const { data: workTypesData, isLoading: isLoadingWorkTypes } = usePeriodicWorkTypes();
@@ -140,38 +149,55 @@ export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps>
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="hidden sm:grid grid-cols-[1fr_2fr_2fr_auto] gap-3 px-1 text-xs font-semibold text-slate-500">
+          <div className={`hidden sm:grid gap-3 px-1 text-xs font-semibold text-slate-500 ${
+            readOnly || isOrdering ? "grid-cols-[1fr_2.5fr_2.5fr]" : "grid-cols-[1fr_2fr_2fr_auto]"
+          }`}>
             <div>階数</div>
             <div className="flex items-center gap-2">
               場所・区域
-              <button type="button" onClick={() => setIsAreaDialogOpen(true)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700">
-                <Settings className="h-3 w-3" />
-              </button>
+              {!readOnly && !isOrdering && (
+                <button type="button" onClick={() => setIsAreaDialogOpen(true)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700">
+                  <Settings className="h-3 w-3" />
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-2">
               作業内容
-              <button type="button" onClick={() => setIsWorkTypeDialogOpen(true)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700">
-                <Settings className="h-3 w-3" />
-              </button>
+              {!readOnly && !isOrdering && (
+                <button type="button" onClick={() => setIsWorkTypeDialogOpen(true)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700">
+                  <Settings className="h-3 w-3" />
+                </button>
+              )}
             </div>
-            <div className="w-[80px] text-center">操作</div>
+            {!readOnly && !isOrdering && (
+              <div className="w-[80px] text-center">操作</div>
+            )}
           </div>
 
           {fields.map((field, index) => {
             const fieldError = (errors[name] as any)?.[index];
+            const floorValue = (field as any).floor;
             return (
-              <div key={field.id} className="relative group rounded-xl sm:rounded-none border sm:border-none p-4 sm:p-0 bg-white sm:bg-transparent shadow-sm sm:shadow-none flex flex-col sm:grid sm:grid-cols-[1fr_2fr_2fr_auto] gap-3 sm:items-start">
+              <div key={field.id} className={`relative group rounded-xl sm:rounded-none border sm:border-none p-4 sm:p-0 bg-white sm:bg-transparent shadow-sm sm:shadow-none flex flex-col sm:grid gap-3 sm:items-start ${
+                readOnly || isOrdering ? "sm:grid-cols-[1fr_2.5fr_2.5fr]" : "sm:grid-cols-[1fr_2fr_2fr_auto]"
+              }`}>
                 
                 {/* 階数 */}
                 <div className="space-y-1">
                   <label className="sm:hidden text-xs font-semibold text-slate-500">階数</label>
-                  <input
-                    {...register(`${name}.${index}.floor`)}
-                    placeholder="例: 1F"
-                    className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#1E60F2] focus:ring-1 focus:ring-[#1E60F2] transition-all"
-                  />
+                  {readOnly || isOrdering ? (
+                    <div className="min-h-[40px] px-3 py-2.5 w-full rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 opacity-80 break-all whitespace-normal leading-snug min-w-0">
+                      {floorValue || "該当なし"}
+                    </div>
+                  ) : (
+                    <input
+                      {...register(`${name}.${index}.floor`)}
+                      placeholder="例: 1F"
+                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#1E60F2] focus:ring-1 focus:ring-[#1E60F2] transition-all"
+                    />
+                  )}
                   {fieldError?.floor && (
-                    <p className="text-[10px] text-destructive">{fieldError.floor.message}</p>
+                    <p className="text-[10px] text-red-500">{fieldError.floor.message}</p>
                   )}
                 </div>
 
@@ -188,7 +214,7 @@ export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps>
                         options={areasData || []}
                         placeholder="選択または入力..."
                         icon={<MapPin className="h-3.5 w-3.5" />}
-                        disabled={isLoadingAreas}
+                        disabled={isLoadingAreas || readOnly || isOrdering}
                         addLabel="追加"
                         onAddNew={(val: string) => {
                           createAreaMutation.mutate({ name: val }, {
@@ -201,7 +227,7 @@ export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps>
                     )}
                   />
                   {fieldError?.area && (
-                    <p className="text-[10px] text-destructive">{fieldError.area.message}</p>
+                    <p className="text-[10px] text-red-500">{fieldError.area.message}</p>
                   )}
                 </div>
 
@@ -218,7 +244,7 @@ export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps>
                         options={workTypesData || []}
                         placeholder="選択または入力..."
                         icon={<Briefcase className="h-3.5 w-3.5" />}
-                        disabled={isLoadingWorkTypes}
+                        disabled={isLoadingWorkTypes || readOnly || isOrdering}
                         addLabel="追加"
                         onAddNew={(val: string) => {
                           createWorkTypeMutation.mutate({ name: val }, {
@@ -231,36 +257,38 @@ export const PeriodicWorkContentEditor: React.FC<PeriodicWorkContentEditorProps>
                     )}
                   />
                   {fieldError?.workContent && (
-                    <p className="text-[10px] text-destructive">{fieldError.workContent.message}</p>
+                    <p className="text-[10px] text-red-500">{fieldError.workContent.message}</p>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end sm:justify-center gap-1 sm:pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(index)}
-                    title="この行をコピー"
-                    className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors bg-white"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    title="この行を削除"
-                    className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors bg-white"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                {!readOnly && !isOrdering && (
+                  <div className="flex items-center justify-end sm:justify-center gap-1 sm:pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(index)}
+                      title="この行をコピー"
+                      className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors bg-white"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(index)}
+                      title="この行を削除"
+                      className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors bg-white"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {fields.length > 0 && (
+      {!readOnly && !isOrdering && fields.length > 0 && (
         <button
           type="button"
           onClick={() => append({ floor: "", area: "", workContent: "", sortOrder: fields.length })}

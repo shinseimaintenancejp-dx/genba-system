@@ -14,6 +14,7 @@ import { OtherContractForm } from "@/components/contracts/OtherContractForm";
 import { mapContractToDefaultValues } from "@/lib/contractMapper";
 import { Plus, Eye, PencilLine, Search, X, Loader2 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Tabs from "@radix-ui/react-tabs";
 import type { Contract } from "@/types/contract";
 
 export default function GenbaContractsPage() {
@@ -27,7 +28,7 @@ export default function GenbaContractsPage() {
   const [search, setSearch] = useState("");
   const [contractType, setContractType] = useState<string>("");
   const [serviceCategory, setServiceCategory] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string>("ACTIVE");
 
   // Modals state
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -41,6 +42,11 @@ export default function GenbaContractsPage() {
   const activeContract = contractDetail || editContract;
 
   // Query contracts filtered by this specific genbaId
+  const { data: draftContracts } = useContracts({ genba_id: genbaId, status: "DRAFT,EXPIRED", limit: 1 });
+  const { data: pendingContracts } = useContracts({ genba_id: genbaId, status: "PENDING_APPROVAL", limit: 1 });
+  const draftCount = draftContracts?.total || 0;
+  const pendingCount = pendingContracts?.total || 0;
+
   const { data: contractsData, isLoading: isLoadingContracts, refetch } = useContracts({
     page,
     limit,
@@ -326,26 +332,48 @@ export default function GenbaContractsPage() {
           </select>
         </div>
 
-        {/* Status Filter */}
-        <div className="w-full sm:w-48">
-          <label className="block text-xs font-medium text-slate-600 mb-1">ステータス</label>
-          <select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white"
-          >
-            <option value="">すべて</option>
-            <option value="DRAFT">下書き</option>
-            <option value="PENDING_APPROVAL">承認待ち</option>
-            <option value="ACTIVE">有効</option>
-            <option value="EXPIRED">期限切れ</option>
-            <option value="CANCELLED">解約</option>
-          </select>
-        </div>
+
       </div>
+
+      {/* Tabs Filter */}
+      <Tabs.Root value={status} onValueChange={(val) => { setStatus(val); setPage(1); }} className="w-full">
+        <Tabs.List className="flex w-full overflow-x-auto border-b border-slate-200">
+          <Tabs.Trigger
+            value="ACTIVE"
+            className="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent data-[state=active]:border-[#1E60F2] data-[state=active]:text-[#1E60F2] transition-colors whitespace-nowrap"
+          >
+            有効
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="CANCELLED"
+            className="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent data-[state=active]:border-[#1E60F2] data-[state=active]:text-[#1E60F2] transition-colors whitespace-nowrap"
+          >
+            解約
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="DRAFT,EXPIRED"
+            className="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent data-[state=active]:border-[#1E60F2] data-[state=active]:text-[#1E60F2] transition-colors whitespace-nowrap flex items-center gap-2"
+          >
+            下書き
+            {draftCount > 0 && (
+              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                {draftCount}
+              </span>
+            )}
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="PENDING_APPROVAL"
+            className="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent data-[state=active]:border-[#1E60F2] data-[state=active]:text-[#1E60F2] transition-colors whitespace-nowrap flex items-center gap-2"
+          >
+            承認待ち
+            {pendingCount > 0 && (
+              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                {pendingCount}
+              </span>
+            )}
+          </Tabs.Trigger>
+        </Tabs.List>
+      </Tabs.Root>
 
       <DataTable
         columns={columns}
@@ -379,7 +407,7 @@ export default function GenbaContractsPage() {
                   <Dialog.Title className="text-2xl font-bold text-slate-900">
                     {createFormType ? "契約の新規登録" : isReadOnly ? "契約詳細" : "契約の編集"}
                   </Dialog.Title>
-                  {activeContract && isReadOnly && canWrite && (
+                  {activeContract && isReadOnly && canWrite && activeContract.status !== "CANCELLED" && (
                     <button
                       type="button"
                       onClick={() => setIsReadOnly(false)}

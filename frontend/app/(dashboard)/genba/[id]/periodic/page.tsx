@@ -508,7 +508,7 @@ export default function PeriodicCleaningPlansPage() {
                   <Dialog.Title className="text-2xl font-bold text-slate-900">
                     {isContractReadOnly ? "定期契約詳細" : editingContract ? "定期契約の編集" : "定期契約を追加"}
                   </Dialog.Title>
-                  {editingContract && isContractReadOnly && canEdit && (
+                  {editingContract && isContractReadOnly && canEdit && editingContract.status !== "CANCELLED" && (
                     <button
                       type="button"
                       onClick={() => setIsContractReadOnly(false)}

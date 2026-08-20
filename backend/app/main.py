@@ -19,6 +19,8 @@ from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from app.debug_middleware import validation_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
@@ -130,6 +132,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # FastAPI Application
 # =============================================================================
 app = FastAPI(
+
     title="Genba Management System API",
     description=(
         "現場管理システム API — Shinsei Co., Ltd.\n\n"
@@ -149,6 +152,9 @@ app = FastAPI(
 # =============================================================================
 
 from app.core.feature_middleware import FeatureMiddleware
+ 
+ 
+from app.log_middleware import log_requests
 
 # CORS — allow frontend to communicate (INT§7)
 app.add_middleware(
@@ -161,6 +167,7 @@ app.add_middleware(
 
 # Feature Middleware — controls which modules are accessible (ENABLED_MODULES)
 app.add_middleware(FeatureMiddleware)
+app.middleware("http")(log_requests)
 
 # Gzip compression for response body
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -254,16 +261,30 @@ app.include_router(photo_router, prefix="/api/v1/genba", tags=["Photo Management
 app.include_router(quotation_router, prefix="/api/v1/genba", tags=["Quotation Management"])
 app.include_router(invoice_router, prefix="/api/v1/invoices", tags=["Invoice Management"])
 
-from fastapi.exceptions import RequestValidationError
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-@app.exception_handler(RequestValidationError)
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+import logging
+
+logger = logging.getLogger("DEBUG_MIDDLEWARE")
+
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    import logging
-    from fastapi.encoders import jsonable_encoder
-    logger = logging.getLogger(__name__)
     body = await request.body()
-    logger.error(f"Validation Error: {exc.errors()}")
+    logger.error(f"422 Validation Error on {request.url}")
     logger.error(f"Body: {body.decode()}")
+    logger.error(f"Errors: {exc.errors()}")
+    from fastapi.encoders import jsonable_encoder
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
+
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    body = await request.body()
+    logger.error(f"HTTPException {exc.status_code} on {request.url}")
+    logger.error(f"Detail: {exc.detail}")
+    logger.error(f"Body: {body.decode()}")
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)

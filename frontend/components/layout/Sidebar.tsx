@@ -17,6 +17,7 @@ import {
   Briefcase,
   ChevronDown,
   ChevronUp,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isModuleEnabled } from "@/lib/modules";
@@ -102,6 +103,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           module: "contracts",
         },
       ],
+    },
+    {
+      title: "レポート",
+      path: "/reports/profit",
+      icon: TrendingUp,
+      roles: ["ADMIN", "SENIOR_STAFF"],
+      module: "contracts",
     },
     {
       title: "請求管理",

@@ -180,6 +180,72 @@ class CleaningAreaModel(Base):
         return f"CleaningArea(id={self.id}, name={self.name})"
 
 
+class DailyWorkTypeModel(Base):
+    """
+    Daily Cleaning Work Type Master Table (日常清掃仕様マスター).
+    Global list of daily cleaning specification names available system-wide.
+    """
+
+    __tablename__ = "m_daily_work_types"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"DailyWorkType(id={self.id}, name={self.name})"
+
+
+class FrequencyModel(Base):
+    """
+    Frequency Master Table (頻度マスター).
+    Global list of frequency names available system-wide.
+    """
+
+    __tablename__ = "m_frequencies"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"Frequency(id={self.id}, name={self.name})"
+
+
 class MemoModel(Base):
     """
     Genba Memos (その他メモ).

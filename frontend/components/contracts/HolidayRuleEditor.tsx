@@ -6,6 +6,7 @@ import type { HolidayRuleType, HolidayAction } from "@/types/contract";
 
 interface HolidayRuleEditorProps {
   name: string;
+  readOnly?: boolean;
 }
 
 const FIXED_RULES: HolidayRuleType[] = [
@@ -22,7 +23,7 @@ const ACTIONS: { value: HolidayAction; label: string }[] = [
   { value: "翌日に振替", label: "翌日に振替" },
 ];
 
-export const HolidayRuleEditor: React.FC<HolidayRuleEditorProps> = ({ name }) => {
+export const HolidayRuleEditor: React.FC<HolidayRuleEditorProps> = ({ name, readOnly = false }) => {
   const { control, setValue, getValues } = useFormContext();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -84,8 +85,9 @@ export const HolidayRuleEditor: React.FC<HolidayRuleEditorProps> = ({ name }) =>
 
           <div className="col-span-7 sm:col-span-8">
             <select
+              disabled={readOnly}
               {...control.register(`${name}.${index}.action`)}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60 disabled:bg-slate-50"
             >
               {ACTIONS.map((action) => (
                 <option key={action.value} value={action.value}>

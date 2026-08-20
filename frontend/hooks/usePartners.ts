@@ -4,7 +4,7 @@
  * Wraps partner API calls with TanStack Query v5 patterns.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post, put } from "@/lib/api";
 import { queryKeys } from "./queryKeys";
 import type { PartnerCompany } from "@/types/partner";
@@ -35,6 +35,8 @@ export const usePartners = (filters: ListPartnersFilters = {}) => {
     queryKey: queryKeys.partners.list(filters),
     queryFn: () => get<PaginatedResponse<PartnerCompany>>("/partners", { params: filters }),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    // Keep previous data visible while fetching new page/filter — prevents table flash
+    placeholderData: keepPreviousData,
   });
 };
 

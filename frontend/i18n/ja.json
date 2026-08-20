@@ -46,7 +46,6 @@
     "active": "有効",
     "inactive": "無効"
   },
-
   "auth": {
     "login": "ログイン",
     "logout": "ログアウト",
@@ -59,9 +58,8 @@
     "accountLocked": "アカウントがロックされています。しばらくしてから再試行してください",
     "forgotPassword": "パスワードを忘れた場合",
     "systemName": "現場管理システム",
-    "company": "株式会社Shinsei"
+    "company": "株式会社シンセイ"
   },
-
   "navigation": {
     "dashboard": "ダッシュボード",
     "genba": "現場一覧",
@@ -75,7 +73,6 @@
     "settings": "設定",
     "myGenba": "担当現場"
   },
-
   "genba": {
     "title": "現場一覧",
     "newGenba": "新規現場登録",
@@ -113,7 +110,6 @@
     "createSuccess": "現場を登録しました",
     "updateSuccess": "現場情報を更新しました"
   },
-
   "customer": {
     "title": "取引先一覧",
     "newCustomer": "新規取引先登録",
@@ -128,7 +124,6 @@
     "createSuccess": "取引先を登録しました",
     "updateSuccess": "取引先情報を更新しました"
   },
-
   "partner": {
     "title": "協力会社一覧",
     "newPartner": "新規協力会社登録",
@@ -138,7 +133,6 @@
     "email": "メールアドレス",
     "empty": "協力会社が登録されていません"
   },
-
   "staff": {
     "title": "社内担当者一覧",
     "newStaff": "新規担当者登録",
@@ -149,7 +143,6 @@
     "department": "部署",
     "empty": "担当者が登録されていません"
   },
-
   "worker": {
     "title": "現場員一覧",
     "newWorker": "新規現場員登録",
@@ -158,7 +151,6 @@
     "assignedGenba": "担当現場",
     "empty": "現場員が登録されていません"
   },
-
   "contract": {
     "title": "契約一覧",
     "newContract": "新規契約登録",
@@ -178,7 +170,6 @@
     "expired": "終了",
     "empty": "契約が登録されていません"
   },
-
   "invoice": {
     "title": "請求書一覧",
     "type": "区分",
@@ -196,7 +187,6 @@
     "rejected": "却下",
     "empty": "請求書がありません"
   },
-
   "approval": {
     "title": "承認一覧",
     "pending": "承認待ち",
@@ -210,7 +200,6 @@
     "rejectConfirm": "却下理由を入力してください",
     "empty": "承認待ちの案件はありません"
   },
-
   "keys": {
     "title": "鍵管理",
     "keyNumber": "鍵番号",
@@ -228,7 +217,6 @@
     "other": "その他",
     "empty": "鍵情報が登録されていません"
   },
-
   "photos": {
     "title": "写真",
     "upload": "写真をアップロード",
@@ -241,7 +229,6 @@
     "empty": "写真が登録されていません",
     "uploading": "アップロード中..."
   },
-
   "manual": {
     "entryExit": {
       "title": "入退館マニュアル",
@@ -273,7 +260,6 @@
       "empty": "定期清掃マニュアルが登録されていません"
     }
   },
-
   "schedule": {
     "title": "勤務スケジュール",
     "day": "曜日",
@@ -287,7 +273,6 @@
     "work": "通常勤務",
     "empty": "スケジュールが登録されていません"
   },
-
   "errors": {
     "required": "必須項目です",
     "invalid": "入力内容が正しくありません",
@@ -302,7 +287,6 @@
     "forbidden": "この操作を行う権限がありません",
     "sessionExpired": "セッションが期限切れです。再度ログインしてください"
   },
-
   "pagination": {
     "showing": "件中",
     "to": "〜",
@@ -310,7 +294,6 @@
     "previous": "前のページ",
     "next": "次のページ"
   },
-
   "roles": {
     "ADMIN": "システム管理者",
     "SENIOR_STAFF": "管理職",

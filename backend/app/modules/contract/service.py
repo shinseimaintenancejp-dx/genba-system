@@ -11,7 +11,7 @@ Router updated accordingly: ContractService.method() → contract_service.method
 import json
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, time
+from datetime import datetime, time, date
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -24,10 +24,12 @@ from app.modules.contract.models import (
     ContractModel,
     ContractPeriodicScheduleModel,
     ContractPeriodicWorkContentModel,
+    ContractDailyWorkContentModel,
     ContractWorkerCountModel,
     ContractWorkSlotModel,
 )
 from app.modules.contract.repository import ContractRepository
+from app.modules.contract.ordering_link_repository import ordering_link_repository
 from app.modules.contract.schemas import ContractCreate, ContractUpdate
 
 
@@ -51,6 +53,92 @@ class ContractService:
         )
         return contract
 
+
+    async def get_linked_ordering_contracts(
+        self, db: AsyncSession, receiving_contract_id: uuid.UUID
+    ) -> list[dict]:
+        from sqlalchemy import select
+        from app.modules.contract.models import ContractOrderingLinkModel, ContractModel
+        from app.modules.partner.models import PartnerCompanyModel
+        
+        stmt = (
+            select(ContractModel, PartnerCompanyModel.company_name.label("partner_name"))
+            .join(ContractOrderingLinkModel, ContractOrderingLinkModel.ordering_contract_id == ContractModel.id)
+            .outerjoin(PartnerCompanyModel, ContractModel.partner_id == PartnerCompanyModel.id)
+            .where(
+                ContractOrderingLinkModel.receiving_contract_id == receiving_contract_id,
+                ContractModel.status.not_in(["CANCELLED", "EXPIRED"])
+            )
+        )
+        
+        result = await db.execute(stmt)
+        rows = result.all()
+        
+        linked_contracts = []
+        for contract, partner_name in rows:
+            linked_contracts.append({
+                "id": contract.id,
+                "contract_name": contract.contract_name,
+                "internal_code": contract.internal_code,
+                "status": contract.status,
+                "partner_id": contract.partner_id,
+                "partner_name": partner_name
+            })
+            
+        return linked_contracts
+
+    async def cancel_contract_with_links(
+        self, db: AsyncSession, contract_id: uuid.UUID, end_date: date, current_user_id: uuid.UUID
+    ) -> dict:
+        from app.modules.contract.models import ContractModel, ContractOrderingLinkModel
+        from sqlalchemy import select, update
+        from fastapi import HTTPException
+        
+        # This will happen in a transaction managed by the router `async with db.begin():` (actually db is AsyncSession)
+        
+        # 1. Fetch main contract
+        main_contract = await ContractRepository.get_by_id(db, contract_id)
+        if not main_contract:
+            raise HTTPException(status_code=404, detail="Contract not found")
+            
+        if main_contract.status == "CANCELLED":
+            raise HTTPException(status_code=400, detail="この契約は既に解約されています。")
+            
+        # Validate date
+        if main_contract.start_date > end_date:
+            from pydantic import ValidationError
+            from app.core.exceptions import CustomValidationError
+            raise CustomValidationError(errors=[{"loc": ["start_date"], "msg": "契約開始日は終了日より前の日付にしてください", "type": "value_error"}])
+
+        # 2. Get all linked ordering contracts
+        stmt = select(ContractOrderingLinkModel.ordering_contract_id).where(
+            ContractOrderingLinkModel.receiving_contract_id == contract_id
+        )
+        result = await db.execute(stmt)
+        ordering_ids = result.scalars().all()
+        
+        # 3. Cancel all ordering contracts
+        if ordering_ids:
+            update_stmt = (
+                update(ContractModel)
+                .where(ContractModel.id.in_(ordering_ids))
+                .values(status="CANCELLED", end_date=end_date)
+            )
+            await db.execute(update_stmt)
+            
+        # 4. Cancel main contract
+        update_main_stmt = (
+            update(ContractModel)
+            .where(ContractModel.id == contract_id)
+            .values(status="CANCELLED", end_date=end_date)
+        )
+        await db.execute(update_main_stmt)
+        
+        # The transaction commit will happen in router (if we don't commit here). But we should ensure the router commits.
+        await db.commit()
+        
+        return {"status": "success", "cancelled_ordering_contracts_count": len(ordering_ids)}
+
     async def list_contracts(
         self,
         db: AsyncSession,
@@ -66,6 +154,8 @@ class ContractService:
         service_category: str | None = None,
         staff_id: str | None = None,
         periodic_month: int | None = None,
+        current_user_id: str | None = None,
+        current_user_role: str | None = None,
     ) -> tuple[Sequence[ContractModel], int]:
         """List contracts with filters and pagination."""
         items = await ContractRepository.list_all(
@@ -82,6 +172,8 @@ class ContractService:
             service_category=service_category,
             staff_id=staff_id,
             periodic_month=periodic_month,
+            current_user_id=current_user_id,
+            current_user_role=current_user_role,
         )
         total = await ContractRepository.count_all(
             db,
@@ -95,6 +187,8 @@ class ContractService:
             service_category=service_category,
             staff_id=staff_id,
             periodic_month=periodic_month,
+            current_user_id=current_user_id,
+            current_user_role=current_user_role,
         )
         return items, total
 
@@ -128,11 +222,13 @@ class ContractService:
         return Decimal(str(round(duration_minutes / 60, 2)))
 
     async def _check_duplicate_contract_name(
-        self, db: AsyncSession, name: str, genba_id: uuid.UUID, exclude_id: uuid.UUID | None = None
+        self, db: AsyncSession, name: str, genba_id: uuid.UUID, contract_type: str, exclude_id: uuid.UUID | None = None
     ) -> None:
-        """Check if contract name already exists in the same genba."""
+        """Check if contract name already exists in the same genba for the given contract type."""
         stmt = select(ContractModel).where(
-            ContractModel.contract_name == name, ContractModel.genba_id == genba_id
+            ContractModel.contract_name == name, 
+            ContractModel.genba_id == genba_id,
+            ContractModel.contract_type == contract_type
         )
         if exclude_id:
             stmt = stmt.where(ContractModel.id != exclude_id)
@@ -175,7 +271,7 @@ class ContractService:
         # Check duplicate contract name (contract_name is always set by validator, guard for type safety)
         contract_name = data.contract_name
         if contract_name:
-            await self._check_duplicate_contract_name(db, contract_name, data.genba_id)
+            await self._check_duplicate_contract_name(db, contract_name, data.genba_id, data.contract_type)
 
         # Auto-calculate legacy duration
         duration = self._calculate_duration(data.work_start_time, data.work_end_time)
@@ -242,6 +338,19 @@ class ContractService:
                     )
                 )
 
+        daily_work_contents_db = []
+        if data.daily_work_contents:
+            for idx, item in enumerate(data.daily_work_contents):
+                daily_work_contents_db.append(
+                    ContractDailyWorkContentModel(
+                        category=item.category,
+                        area=item.area,
+                        work_content=item.work_content,
+                        frequency=item.frequency,
+                        sort_order=item.sort_order if item.sort_order else idx,
+                    )
+                )
+
         # Auto-calculate legacy duration if not provided
         if not duration and data.work_slots and len(data.work_slots) > 0:
             first_slot = sorted(data.work_slots, key=lambda x: x.sort_order)[0]
@@ -271,7 +380,7 @@ class ContractService:
             customer_id=data.customer_id,
             partner_id=data.partner_id,
             created_by=uuid.UUID(user_id) if user_id else None,
-            status="DRAFT",
+            status=data.initial_status,
             # Sprint 5 fields
             contract_name=contract_name,
             service_category=data.service_category,
@@ -296,7 +405,14 @@ class ContractService:
             holiday_rules=holiday_rules_db if holiday_rules_db else None,
             periodic_schedule=periodic_schedule_db,
             periodic_work_contents=periodic_work_contents_db if periodic_work_contents_db else None,
+            daily_work_contents=daily_work_contents_db if daily_work_contents_db else None,
         )
+
+        # Process inline ordering links if this is an ORDERING contract
+        if data.contract_type == "ORDERING" and data.ordering_links:
+            for link_data in data.ordering_links:
+                await ordering_link_repository.create_link(db, created_contract.id, link_data)
+
 
         # Audit log
         new_val = {
@@ -328,6 +444,10 @@ class ContractService:
         if not contract:
             raise NotFoundError("契約が見つかりません")
 
+        if contract.status == "CANCELLED":
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="解約済みの契約は編集できません。")
+
         # Validate dates if they are being updated
         start_date = data.start_date if data.start_date is not None else contract.start_date
         end_date = data.end_date if data.end_date is not None else contract.end_date
@@ -342,11 +462,11 @@ class ContractService:
 
         if data.contract_name is not None:
             await self._check_duplicate_contract_name(
-                db, data.contract_name, contract.genba_id, exclude_id=contract.id
+                db, data.contract_name, contract.genba_id, contract.contract_type, exclude_id=contract.id
             )
 
         # Apply updates
-        update_data = data.model_dump(exclude_unset=True)
+        import logging; logging.error(f"UPDATE_DATA: {data.model_dump(exclude_unset=True)}"); update_data = data.model_dump(exclude_unset=True)
 
         # Handle duration logic manually if legacy flat times are updated
         if "work_start_time" in update_data or "work_end_time" in update_data:
@@ -438,6 +558,20 @@ class ContractService:
                     )
                 )
 
+        daily_work_contents_db = None
+        if data.daily_work_contents is not None:
+            daily_work_contents_db = []
+            for idx, item in enumerate(data.daily_work_contents):
+                daily_work_contents_db.append(
+                    ContractDailyWorkContentModel(
+                        category=item.category,
+                        area=item.area,
+                        work_content=item.work_content,
+                        frequency=item.frequency,
+                        sort_order=item.sort_order if item.sort_order else idx,
+                    )
+                )
+
         # Exclude nested data from setattr loop
         for field in [
             "work_slots",
@@ -445,6 +579,8 @@ class ContractService:
             "holiday_rules",
             "periodic_schedule",
             "periodic_work_contents",
+            "daily_work_contents",
+            "ordering_links",
         ]:
             update_data.pop(field, None)
 
@@ -477,8 +613,29 @@ class ContractService:
             holiday_rules=holiday_rules_db,
             periodic_schedule=periodic_schedule_db,
             periodic_work_contents=periodic_work_contents_db,
+            daily_work_contents=daily_work_contents_db,
             clear_periodic=clear_periodic,
         )
+
+        # Update ordering links if this is an ORDERING contract
+        if contract.contract_type == "ORDERING" and data.ordering_links is not None:
+            from sqlalchemy import delete
+            from app.modules.contract.models import ContractOrderingLinkModel
+            
+            # Delete old links
+            stmt = delete(ContractOrderingLinkModel).where(
+                ContractOrderingLinkModel.ordering_contract_id == contract.id
+            )
+            await db.execute(stmt)
+            
+            # Create new links
+            for link_data in data.ordering_links:
+                await ordering_link_repository.create_link(db, contract.id, link_data)
+
+        # Re-fetch with all relations eagerly loaded
+        contract = await ContractRepository.get_with_relations(db, contract.id)
+        if not contract:
+            raise NotFoundError("契約が見つかりません")
 
         new_val = {
             "status": contract.status,
@@ -504,6 +661,10 @@ class ContractService:
     async def delete_contract(self, db: AsyncSession, id: uuid.UUID, user_id: str) -> None:
         """Delete an existing contract."""
         contract = await self.get_contract(db, id, user_id)
+
+        if contract.status == "CANCELLED":
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="解約済みの契約は削除できません。")
 
         old_val = {
             "status": contract.status,

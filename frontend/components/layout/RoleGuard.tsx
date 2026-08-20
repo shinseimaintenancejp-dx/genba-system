@@ -1,4 +1,4 @@
-"use strict";
+"use client";
 
 import React from "react";
 import { useRouter } from "next/navigation";
@@ -18,8 +18,12 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   const router = useRouter();
   const { data: user, isLoading, error } = useCurrentUser();
 
-  // If loading user data, show standard animated spinner conforming to ui-ux-genba-spec.md
-  if (isLoading) {
+  // Only show full-screen spinner on the very first load (no cached user yet).
+  // Background refetches (isLoading=true but user already in cache) must NOT
+  // unmount the dashboard tree — that would cause the page-flash the user sees.
+  const isFirstLoad = isLoading && !user;
+
+  if (isFirstLoad) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -30,8 +34,9 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     );
   }
 
-  // If user is not authenticated or API returned error, redirect to login
-  if (!user || error) {
+  // If user is not authenticated and not currently loading, redirect to login.
+  // During a transient background refetch error, keep the existing UI stable.
+  if (!user && !isLoading) {
     if (typeof window !== "undefined") {
       router.replace("/login");
     }
@@ -39,7 +44,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   }
 
   // If role is not allowed, show unauthorized access screen in Japanese
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (user && allowedRoles && !allowedRoles.includes(user.role)) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-background p-6 text-center">
         <h1 className="text-2xl font-bold text-destructive mb-2">

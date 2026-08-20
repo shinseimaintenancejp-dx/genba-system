@@ -516,7 +516,7 @@ export default function DailyCleaningTasksPage() {
                   <Dialog.Title className="text-2xl font-bold text-slate-900">
                     {isContractReadOnly ? "日常契約詳細" : editingContract ? "日常契約の編集" : "日常契約を追加"}
                   </Dialog.Title>
-                  {editingContract && isContractReadOnly && canEdit && (
+                  {editingContract && isContractReadOnly && canEdit && editingContract.status !== "CANCELLED" && (
                     <button
                       type="button"
                       onClick={() => setIsContractReadOnly(false)}

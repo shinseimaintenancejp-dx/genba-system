@@ -12,7 +12,7 @@ Handles database operations for:
 import uuid
 from typing import Sequence
 from datetime import datetime, timezone
-from sqlalchemy import select, func, or_, delete
+from sqlalchemy import select, func, or_, delete, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,6 +23,8 @@ from app.modules.manual.models import (
     MemoModel,
     MemoAttachmentModel,
     PeriodicWorkTypeModel,
+    DailyWorkTypeModel,
+    FrequencyModel,
 )
 from app.modules.manual.schemas import (
     EntryExitUpsert,
@@ -32,6 +34,10 @@ from app.modules.manual.schemas import (
     CleaningAreaUpdate,
     PeriodicWorkTypeCreate,
     PeriodicWorkTypeUpdate,
+    DailyWorkTypeCreate,
+    DailyWorkTypeUpdate,
+    FrequencyCreate,
+    FrequencyUpdate,
     MemoCreate,
     MemoUpdate,
 )
@@ -329,12 +335,19 @@ class CleaningAreaRepository:
 
     @staticmethod
     async def get_all(db: AsyncSession) -> Sequence[CleaningAreaModel]:
-        """Retrieve all active cleaning areas ordered by sort_order."""
-        result = await db.execute(
-            select(CleaningAreaModel)
-            .where(CleaningAreaModel.is_active == True)  # noqa: E712
-            .order_by(CleaningAreaModel.sort_order, CleaningAreaModel.name)
+        """Retrieve all active cleaning areas ordered by usage_count desc, name asc."""
+        from app.modules.contract.models import ContractDailyWorkContentModel, ContractPeriodicWorkContentModel
+        from app.modules.manual.models import DailyCleaningTaskContentModel
+        
+        c_daily_sq = select(func.count(ContractDailyWorkContentModel.id)).where(ContractDailyWorkContentModel.area == CleaningAreaModel.name).scalar_subquery()
+        c_periodic_sq = select(func.count(ContractPeriodicWorkContentModel.id)).where(ContractPeriodicWorkContentModel.area == CleaningAreaModel.name).scalar_subquery()
+        m_daily_sq = select(func.count(DailyCleaningTaskContentModel.id)).where(DailyCleaningTaskContentModel.area_name == CleaningAreaModel.name).scalar_subquery()
+
+        stmt = select(CleaningAreaModel).where(CleaningAreaModel.is_active == True).order_by(
+            desc(func.coalesce(c_daily_sq, 0) + func.coalesce(c_periodic_sq, 0) + func.coalesce(m_daily_sq, 0)),
+            asc(CleaningAreaModel.name)
         )
+        result = await db.execute(stmt)
         return result.scalars().all()
 
     @staticmethod
@@ -349,10 +362,7 @@ class CleaningAreaRepository:
     async def get_by_name(db: AsyncSession, name: str) -> CleaningAreaModel | None:
         """Retrieve a cleaning area by exact name (for duplicate check)."""
         result = await db.execute(
-            select(CleaningAreaModel).where(
-                CleaningAreaModel.name == name,
-                CleaningAreaModel.is_active == True,  # noqa: E712
-            )
+            select(CleaningAreaModel).where(CleaningAreaModel.name == name)
         )
         return result.scalar_one_or_none()
 
@@ -414,10 +424,7 @@ class PeriodicWorkTypeRepository:
     async def get_by_name(db: AsyncSession, name: str) -> PeriodicWorkTypeModel | None:
         """Retrieve a periodic work type by exact name (for duplicate check)."""
         result = await db.execute(
-            select(PeriodicWorkTypeModel).where(
-                PeriodicWorkTypeModel.name == name,
-                PeriodicWorkTypeModel.is_active == True,  # noqa: E712
-            )
+            select(PeriodicWorkTypeModel).where(PeriodicWorkTypeModel.name == name)
         )
         return result.scalar_one_or_none()
 
@@ -451,4 +458,126 @@ class PeriodicWorkTypeRepository:
         """Soft-delete a periodic work type by deactivating it."""
         work_type.is_active = False
         work_type.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+
+
+class DailyWorkTypeRepository:
+    """Repository class for Daily Work Type master CRUD operations."""
+
+    @staticmethod
+    async def get_all(db: AsyncSession) -> Sequence[DailyWorkTypeModel]:
+        from app.modules.contract.models import ContractDailyWorkContentModel
+        from app.modules.manual.models import DailyCleaningTaskContentModel
+        
+        contract_sq = select(func.count(ContractDailyWorkContentModel.id)).where(ContractDailyWorkContentModel.work_content == DailyWorkTypeModel.name).scalar_subquery()
+        manual_sq = select(func.count(DailyCleaningTaskContentModel.id)).where(DailyCleaningTaskContentModel.work_content == DailyWorkTypeModel.name).scalar_subquery()
+
+        stmt = select(DailyWorkTypeModel).where(DailyWorkTypeModel.is_active == True).order_by(
+            desc(func.coalesce(contract_sq, 0) + func.coalesce(manual_sq, 0)),
+            asc(DailyWorkTypeModel.name)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
+    @staticmethod
+    async def get_by_id(db: AsyncSession, type_id: uuid.UUID) -> DailyWorkTypeModel | None:
+        result = await db.execute(
+            select(DailyWorkTypeModel).where(DailyWorkTypeModel.id == type_id)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_by_name(db: AsyncSession, name: str) -> DailyWorkTypeModel | None:
+        result = await db.execute(
+            select(DailyWorkTypeModel).where(DailyWorkTypeModel.name == name)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def create(db: AsyncSession, data: DailyWorkTypeCreate) -> DailyWorkTypeModel:
+        work_type = DailyWorkTypeModel(
+            name=data.name,
+            sort_order=data.sort_order,
+        )
+        db.add(work_type)
+        await db.flush()
+        await db.refresh(work_type)
+        return work_type
+
+    @staticmethod
+    async def update(
+        db: AsyncSession, work_type: DailyWorkTypeModel, data: DailyWorkTypeUpdate
+    ) -> DailyWorkTypeModel:
+        update_data = data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(work_type, field, value)
+        work_type.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+        await db.refresh(work_type)
+        return work_type
+
+    @staticmethod
+    async def delete(db: AsyncSession, work_type: DailyWorkTypeModel) -> None:
+        work_type.is_active = False
+        work_type.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+
+
+class FrequencyRepository:
+    """Repository class for Frequency master CRUD operations."""
+
+    @staticmethod
+    async def get_all(db: AsyncSession) -> Sequence[FrequencyModel]:
+        from app.modules.contract.models import ContractDailyWorkContentModel
+        
+        contract_sq = select(func.count(ContractDailyWorkContentModel.id)).where(ContractDailyWorkContentModel.frequency == FrequencyModel.name).scalar_subquery()
+
+        stmt = select(FrequencyModel).where(FrequencyModel.is_active == True).order_by(
+            desc(func.coalesce(contract_sq, 0)),
+            asc(FrequencyModel.name)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
+    @staticmethod
+    async def get_by_id(db: AsyncSession, freq_id: uuid.UUID) -> FrequencyModel | None:
+        result = await db.execute(
+            select(FrequencyModel).where(FrequencyModel.id == freq_id)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_by_name(db: AsyncSession, name: str) -> FrequencyModel | None:
+        result = await db.execute(
+            select(FrequencyModel).where(FrequencyModel.name == name)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def create(db: AsyncSession, data: FrequencyCreate) -> FrequencyModel:
+        freq = FrequencyModel(
+            name=data.name,
+            sort_order=data.sort_order,
+        )
+        db.add(freq)
+        await db.flush()
+        await db.refresh(freq)
+        return freq
+
+    @staticmethod
+    async def update(
+        db: AsyncSession, freq: FrequencyModel, data: FrequencyUpdate
+    ) -> FrequencyModel:
+        update_data = data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(freq, field, value)
+        freq.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+        await db.refresh(freq)
+        return freq
+
+    @staticmethod
+    async def delete(db: AsyncSession, freq: FrequencyModel) -> None:
+        freq.is_active = False
+        freq.updated_at = datetime.now(timezone.utc)
         await db.flush()

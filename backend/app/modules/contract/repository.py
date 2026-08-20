@@ -17,8 +17,11 @@ from app.modules.contract.models import (
     ContractModel,
     ContractPeriodicScheduleModel,
     ContractPeriodicWorkContentModel,
+    ContractDailyWorkContentModel,
     ContractWorkerCountModel,
     ContractWorkSlotModel,
+    ContractOrderingLinkModel,
+    ContractOrderingLinkWorkItemModel,
 )
 from app.modules.genba.models import GenbaModel, GenbaStaffAssignmentModel
 
@@ -54,6 +57,13 @@ class ContractRepository:
                 selectinload(ContractModel.worker_counts),
                 selectinload(ContractModel.holiday_rules),
                 selectinload(ContractModel.periodic_schedule),
+                selectinload(ContractModel.periodic_work_contents),
+                selectinload(ContractModel.daily_work_contents),
+                selectinload(ContractModel.ordering_links)
+                .selectinload(ContractOrderingLinkModel.receiving_contract),
+                selectinload(ContractModel.ordering_links)
+                .selectinload(ContractOrderingLinkModel.work_items)
+                .selectinload(ContractOrderingLinkWorkItemModel.work_content_rel),
             )
         )
         result = await db.execute(stmt)
@@ -100,6 +110,8 @@ class ContractRepository:
         service_category: str | None = None,
         staff_id: str | None = None,
         periodic_month: int | None = None,
+        current_user_id: str | None = None,
+        current_user_role: str | None = None,
     ) -> Sequence[ContractModel]:
         """List all contracts with filters and pagination, ordered by Genba name."""
         query = (
@@ -111,6 +123,7 @@ class ContractRepository:
                 joinedload(ContractModel.partner),
                 selectinload(ContractModel.periodic_schedule),
                 selectinload(ContractModel.periodic_work_contents),
+                selectinload(ContractModel.daily_work_contents),
             )
         )
 
@@ -121,9 +134,27 @@ class ContractRepository:
             )
 
         filters = []
+        # Visibility Option 1: Filter DRAFT by created_by
+        if current_user_role not in ("ADMIN", "SENIOR_STAFF") and current_user_id:
+            try:
+                user_uuid = uuid.UUID(current_user_id)
+                filters.append(
+                    or_(
+                        ContractModel.status != "DRAFT",
+                        and_(ContractModel.status == "DRAFT", ContractModel.created_by == user_uuid)
+                    )
+                )
+            except ValueError:
+                pass
+
+
 
         if status:
-            filters.append(ContractModel.status == status)
+            if "," in status:
+                statuses = [s.strip() for s in status.split(",") if s.strip()]
+                filters.append(ContractModel.status.in_(statuses))
+            else:
+                filters.append(ContractModel.status == status)
         if contract_type:
             filters.append(ContractModel.contract_type == contract_type)
         if genba_id:
@@ -192,13 +223,11 @@ class ContractRepository:
         service_category: str | None = None,
         staff_id: str | None = None,
         periodic_month: int | None = None,
+        current_user_id: str | None = None,
+        current_user_role: str | None = None,
     ) -> int:
-        """Count total contracts matching criteria."""
-        query = (
-            select(func.count())
-            .select_from(ContractModel)
-            .outerjoin(GenbaModel, ContractModel.genba_id == GenbaModel.id)
-        )
+        """Count all contracts with filters."""
+        query = select(func.count(ContractModel.id))
 
         if periodic_month:
             query = query.join(
@@ -207,9 +236,27 @@ class ContractRepository:
             )
 
         filters = []
+        # Visibility Option 1: Filter DRAFT by created_by
+        if current_user_role not in ("ADMIN", "SENIOR_STAFF") and current_user_id:
+            try:
+                user_uuid = uuid.UUID(current_user_id)
+                filters.append(
+                    or_(
+                        ContractModel.status != "DRAFT",
+                        and_(ContractModel.status == "DRAFT", ContractModel.created_by == user_uuid)
+                    )
+                )
+            except ValueError:
+                pass
+
+
 
         if status:
-            filters.append(ContractModel.status == status)
+            if "," in status:
+                statuses = [s.strip() for s in status.split(",") if s.strip()]
+                filters.append(ContractModel.status.in_(statuses))
+            else:
+                filters.append(ContractModel.status == status)
         if contract_type:
             filters.append(ContractModel.contract_type == contract_type)
         if genba_id:
@@ -298,6 +345,7 @@ class ContractRepository:
         holiday_rules: list[ContractHolidayRuleModel] | None = None,
         periodic_schedule: ContractPeriodicScheduleModel | None = None,
         periodic_work_contents: list[ContractPeriodicWorkContentModel] | None = None,
+        daily_work_contents: list[ContractDailyWorkContentModel] | None = None,
     ) -> ContractModel:
         """Create a new contract along with its nested records in a single transaction."""
         contract.work_slots = work_slots if work_slots is not None else []
@@ -306,6 +354,9 @@ class ContractRepository:
         contract.periodic_schedule = periodic_schedule
         contract.periodic_work_contents = (
             periodic_work_contents if periodic_work_contents is not None else []
+        )
+        contract.daily_work_contents = (
+            daily_work_contents if daily_work_contents is not None else []
         )
 
         db.add(contract)
@@ -321,6 +372,7 @@ class ContractRepository:
         holiday_rules: list[ContractHolidayRuleModel] | None = None,
         periodic_schedule: ContractPeriodicScheduleModel | None = None,
         periodic_work_contents: list[ContractPeriodicWorkContentModel] | None = None,
+        daily_work_contents: list[ContractDailyWorkContentModel] | None = None,
         clear_periodic: bool = False,
     ) -> ContractModel:
         """Update a contract by replacing its nested records using soft delete."""
@@ -343,6 +395,10 @@ class ContractRepository:
             for pwc in contract.periodic_work_contents:
                 pwc.deleted_at = now
 
+        if daily_work_contents is not None:
+            for dwc in contract.daily_work_contents:
+                dwc.deleted_at = now
+
         await db.flush()  # Đảm bảo UPDATE (soft delete) xảy ra trước INSERT
 
         # Thêm bản ghi mới (active)
@@ -354,6 +410,8 @@ class ContractRepository:
             contract.holiday_rules = holiday_rules
         if periodic_work_contents is not None:
             contract.periodic_work_contents = periodic_work_contents
+        if daily_work_contents is not None:
+            contract.daily_work_contents = daily_work_contents
 
         # Xử lý periodic schedule 1-1
         if clear_periodic and contract.periodic_schedule:

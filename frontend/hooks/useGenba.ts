@@ -4,7 +4,7 @@
  * Wraps Genba API calls with TanStack Query v5 patterns.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post, put, patch } from "@/lib/api";
 import { queryKeys } from "./queryKeys";
 import type { Genba, GenbaDetail, DuplicateWarning } from "@/types/genba";
@@ -38,6 +38,8 @@ export const useGenbaList = (filters: ListGenbaFilters = {}) => {
     queryKey: queryKeys.genba.list(filters),
     queryFn: () => get<PaginatedResponse<Genba>>("/genba", { params: filters }),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    // Keep previous data visible while fetching new page/filter — prevents table flash
+    placeholderData: keepPreviousData,
   });
 };
 

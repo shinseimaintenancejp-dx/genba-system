@@ -4,7 +4,7 @@
  * Wraps contract API calls with TanStack Query v5 patterns.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post, put, del } from "@/lib/api";
 import { queryKeys } from "./queryKeys";
 import type { Contract, ContractWithRelations, ContractCreatePayload } from "@/types/contract";
@@ -51,14 +51,30 @@ const mapContractPayloadToSnakeCase = (payload: ContractCreatePayload | Partial<
   if (payload.serviceType !== undefined) base.service_type = payload.serviceType;
   if (payload.serviceCategory !== undefined) base.service_category = payload.serviceCategory;
   if (payload.genbaId !== undefined) base.genba_id = payload.genbaId;
+  const currentContractType = payload.contractType;
+  
   if (payload.customerId !== undefined) {
-    base.customer_id = payload.customerId === "" ? null : payload.customerId;
+    if (currentContractType === "ORDERING") {
+      base.customer_id = null;
+    } else {
+      base.customer_id = payload.customerId === "" ? null : payload.customerId;
+    }
   }
+  
   if (payload.partnerId !== undefined) {
-    base.partner_id = payload.partnerId === "" ? null : payload.partnerId;
+    if (currentContractType === "RECEIVING") {
+      base.partner_id = null;
+    } else {
+      base.partner_id = payload.partnerId === "" ? null : payload.partnerId;
+    }
   }
+  
   if (payload.startDate !== undefined) base.start_date = payload.startDate;
   if (payload.endDate !== undefined) base.end_date = payload.endDate;
+  if ((payload as any).initialStatus !== undefined) {
+    base.initial_status = (payload as any).initialStatus;
+    base.status = (payload as any).initialStatus; // Ensure 'status' is populated for ContractUpdate
+  }
   if ((payload as any).status !== undefined) base.status = (payload as any).status;
   if (payload.amount !== undefined) base.amount = payload.amount;
   if (payload.hourlyRate !== undefined) base.hourly_rate = payload.hourlyRate;
@@ -114,6 +130,30 @@ const mapContractPayloadToSnakeCase = (payload: ContractCreatePayload | Partial<
       sort_order: c.sortOrder,
     }));
   }
+
+  if ("dailyWorkContents" in payload && payload.dailyWorkContents) {
+    base.daily_work_contents = payload.dailyWorkContents.map((c: any) => ({
+      category: c.category,
+      area: c.area,
+      work_content: c.workContent,
+      frequency: c.frequency,
+      sort_order: c.sortOrder,
+    }));
+  }
+
+  if ("orderingLinks" in payload && payload.orderingLinks) {
+    base.ordering_links = payload.orderingLinks.map((link: any) => ({
+      receiving_contract_id: link.receiving_contract_id,
+      assignment_type: link.assignment_type,
+      allocated_amount: link.allocated_amount,
+      allocated_percentage: link.allocated_percentage,
+      remarks: link.remarks,
+      work_items: link.work_items ? link.work_items.map((wi: any) => ({
+        work_content_id: wi.work_content_id,
+        scope_detail: wi.scope_detail
+      })) : []
+    }));
+  }
   
   if ("workType" in payload && payload.workType !== undefined) {
     base.work_type = payload.workType;
@@ -132,11 +172,14 @@ const mapContractPayloadToSnakeCase = (payload: ContractCreatePayload | Partial<
 // Contract Hooks
 // =============================================================================
 
-export const useContracts = (filters: ListContractsFilters = {}) => {
+export const useContracts = (filters: ListContractsFilters = {}, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: queryKeys.contracts.list(filters),
     queryFn: () => get<PaginatedResponse<ContractWithRelations>>("/contracts", { params: filters }),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    // Keep previous data visible while fetching new page/filter — prevents table flash
+    placeholderData: keepPreviousData,
+    ...(options?.enabled !== undefined ? { enabled: options.enabled } : {}),
   });
 };
 
@@ -148,6 +191,7 @@ export const useContractsByCategory = (genbaId: string, category: string) => {
     }),
     enabled: !!genbaId && !!category,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -231,3 +275,33 @@ export const useDeleteContract = () => {
     },
   });
 };
+
+
+export const useLinkedOrderingContracts = (receivingContractId: string) => {
+  return useQuery({
+    queryKey: ["contracts", "linked", receivingContractId],
+    queryFn: () =>
+      get<any[]>(`/contracts/${receivingContractId}/linked-ordering-contracts`),
+    enabled: !!receivingContractId,
+  });
+};
+
+export const useCancelContractWithLinks = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, endDate }: { id: string; endDate: string }) =>
+      post(`/contracts/${id}/cancel-with-links`, { end_date: endDate }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts", id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || "解約に失敗しました。";
+      throw error;
+    },
+  });
+};
+

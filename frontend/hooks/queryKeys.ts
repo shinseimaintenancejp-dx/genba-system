@@ -132,6 +132,9 @@ export const queryKeys = {
       [...queryKeys.contracts.lists(), filters] as const,
     details: () => [...queryKeys.contracts.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.contracts.details(), id] as const,
+    // Sub-resources
+    orderingLinks: (id: string) => [...queryKeys.contracts.detail(id), "ordering-links"] as const,
+    availableReceiving: (id: string) => [...queryKeys.contracts.detail(id), "available-receiving"] as const,
   },
 
   // ---------------------------------------------------------------------------
@@ -197,6 +200,20 @@ export const queryKeys = {
   periodicWorkTypes: {
     all: ["periodic-work-types"] as const,
     list: () => [...queryKeys.periodicWorkTypes.all, "list"] as const,
+  },
+  // ---------------------------------------------------------------------------
+  // Daily Work Types (Master Data — Global)
+  // ---------------------------------------------------------------------------
+  dailyWorkTypes: {
+    all: ["daily-work-types"] as const,
+    list: () => [...queryKeys.dailyWorkTypes.all, "list"] as const,
+  },
+  // ---------------------------------------------------------------------------
+  // Frequencies (Master Data — Global)
+  // ---------------------------------------------------------------------------
+  frequencies: {
+    all: ["frequencies"] as const,
+    list: () => [...queryKeys.frequencies.all, "list"] as const,
   },
 } as const;
 

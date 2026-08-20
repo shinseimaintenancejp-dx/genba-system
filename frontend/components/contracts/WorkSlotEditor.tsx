@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 
 interface WorkSlotEditorProps {
   name: string;
+  readOnly?: boolean;
 }
 
 const parseTimeToMinutes = (timeStr: string) => {
@@ -25,7 +26,7 @@ const formatMinutesToHoursAndMinutes = (totalMinutes: number) => {
   return `${hours}時間${minutes}分`;
 };
 
-export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
+export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name, readOnly = false }) => {
   const {
     control,
     watch,
@@ -97,10 +98,11 @@ export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
                     <input
                       type="time"
                       {...control.register(`${name}.${index}.startTime`)}
-                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
+                      disabled={readOnly}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
                     />
                     {fieldErrors?.[index]?.startTime && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-red-500">
                         {fieldErrors[index].startTime.message}
                       </p>
                     )}
@@ -112,10 +114,11 @@ export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
                     <input
                       type="time"
                       {...control.register(`${name}.${index}.endTime`)}
-                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
+                      disabled={readOnly}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
                     />
                     {fieldErrors?.[index]?.endTime && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-red-500">
                         {fieldErrors[index].endTime.message}
                       </p>
                     )}
@@ -132,10 +135,11 @@ export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
                       {...control.register(`${name}.${index}.breakMinutes`, {
                         valueAsNumber: true,
                       })}
-                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
+                      disabled={readOnly}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
                     />
                     {fieldErrors?.[index]?.breakMinutes && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-red-500">
                         {fieldErrors[index].breakMinutes.message}
                       </p>
                     )}
@@ -159,19 +163,22 @@ export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
                         step="0.1"
                         placeholder="0.0"
                         {...control.register(`${name}.${index}.workDurationHours`, { valueAsNumber: true })}
-                        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-right font-bold text-slate-800 w-[100px] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                        disabled={readOnly}
+                        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-right font-bold text-slate-800 w-[100px] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
                       />
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg flex items-center justify-center transition-colors"
-                    title="削除"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => remove(index)}
+                      className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg flex items-center justify-center transition-colors"
+                      title="削除"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -180,21 +187,25 @@ export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
       )}
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-        <button
-          type="button"
-          onClick={() =>
-            append({
-              startTime: "09:00",
-              endTime: "18:00",
-              breakMinutes: 60,
-              sortOrder: fields.length,
-            })
-          }
-          className="h-10 w-full sm:w-auto px-4 rounded-lg border border-blue-500 text-blue-600 hover:bg-blue-50/50 flex items-center justify-center gap-2 text-sm font-semibold transition-all"
-        >
-          <Plus className="h-4 w-4" />
-          時間帯を追加
-        </button>
+        {!readOnly ? (
+          <button
+            type="button"
+            onClick={() =>
+              append({
+                startTime: "09:00",
+                endTime: "18:00",
+                breakMinutes: 60,
+                sortOrder: fields.length,
+              })
+            }
+            className="h-10 w-full sm:w-auto px-4 rounded-lg border border-blue-500 text-blue-600 hover:bg-blue-50/50 flex items-center justify-center gap-2 text-sm font-semibold transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            時間帯を追加
+          </button>
+        ) : (
+          <div />
+        )}
 
         {fields.length > 0 && (
           <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 w-full sm:w-auto justify-between sm:justify-end h-10">
@@ -209,7 +220,7 @@ export const WorkSlotEditor: React.FC<WorkSlotEditorProps> = ({ name }) => {
       </div>
 
       {typeof errors[name]?.message === "string" && (
-        <p className="text-sm text-destructive">{errors[name]?.message as string}</p>
+        <p className="text-sm text-red-500">{errors[name]?.message as string}</p>
       )}
     </div>
   );

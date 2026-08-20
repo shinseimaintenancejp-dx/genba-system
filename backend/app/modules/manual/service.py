@@ -26,8 +26,16 @@ from app.modules.manual.models import (
     MemoModel,
     MemoAttachmentModel,
     PeriodicWorkTypeModel,
+    DailyWorkTypeModel,
+    FrequencyModel,
 )
-from app.modules.manual.repository import ManualRepository, CleaningAreaRepository, PeriodicWorkTypeRepository
+from app.modules.manual.repository import (
+    ManualRepository,
+    CleaningAreaRepository,
+    PeriodicWorkTypeRepository,
+    DailyWorkTypeRepository,
+    FrequencyRepository,
+)
 from app.modules.manual.schemas import (
     EntryExitUpsert,
     DailyCleaningTaskCreate,
@@ -38,6 +46,10 @@ from app.modules.manual.schemas import (
     PeriodicWorkTypeUpdate,
     MemoCreate,
     MemoUpdate,
+    DailyWorkTypeCreate,
+    DailyWorkTypeUpdate,
+    FrequencyCreate,
+    FrequencyUpdate,
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -556,13 +568,19 @@ class PeriodicWorkTypeService:
 
     @staticmethod
     async def create(db: AsyncSession, data: PeriodicWorkTypeCreate) -> PeriodicWorkTypeModel:
-        # Check duplicate
         existing = await PeriodicWorkTypeRepository.get_by_name(db, data.name)
         if existing:
-            raise ValidationError("name", "この作業内容は既に存在します。")
+            if existing.is_active:
+                raise ValidationError("name", "この作業内容は既に存在します。")
+            else:
+                existing.is_active = True
+                if data.sort_order is not None and data.sort_order > 0:
+                    existing.sort_order = data.sort_order
+                await db.flush()
+                await db.refresh(existing)
+                return existing
 
-        # Auto-assign sort_order if not provided
-        if data.sort_order is None:
+        if data.sort_order is None or data.sort_order == 0:
             all_types = await PeriodicWorkTypeRepository.get_all(db)
             data.sort_order = (max([t.sort_order for t in all_types], default=0) + 10)
 
@@ -591,3 +609,119 @@ class PeriodicWorkTypeService:
             raise NotFoundError("Periodic Work Type not found")
 
         await PeriodicWorkTypeRepository.delete(db, work_type)
+
+
+class DailyWorkTypeService:
+    """Service class for Daily Work Type Master CRUD."""
+
+    @staticmethod
+    async def get_all(db: AsyncSession) -> Sequence[DailyWorkTypeModel]:
+        return await DailyWorkTypeRepository.get_all(db)
+
+    @staticmethod
+    async def get_by_id(db: AsyncSession, type_id: uuid.UUID) -> DailyWorkTypeModel:
+        work_type = await DailyWorkTypeRepository.get_by_id(db, type_id)
+        if not work_type:
+            raise NotFoundError("Daily Work Type not found")
+        return work_type
+
+    @staticmethod
+    async def create(db: AsyncSession, data: DailyWorkTypeCreate) -> DailyWorkTypeModel:
+        existing = await DailyWorkTypeRepository.get_by_name(db, data.name)
+        if existing:
+            if existing.is_active:
+                raise ValidationError("name", "この作業内容は既に存在します。")
+            else:
+                existing.is_active = True
+                if data.sort_order is not None and data.sort_order > 0:
+                    existing.sort_order = data.sort_order
+                await db.flush()
+                await db.refresh(existing)
+                return existing
+
+        if data.sort_order == 0 or data.sort_order is None:
+            all_types = await DailyWorkTypeRepository.get_all(db)
+            data.sort_order = (max([t.sort_order for t in all_types], default=0) + 10)
+
+        return await DailyWorkTypeRepository.create(db, data)
+
+    @staticmethod
+    async def update(
+        db: AsyncSession, type_id: uuid.UUID, data: DailyWorkTypeUpdate
+    ) -> DailyWorkTypeModel:
+        work_type = await DailyWorkTypeRepository.get_by_id(db, type_id)
+        if not work_type:
+            raise NotFoundError("Daily Work Type not found")
+
+        if data.name is not None and data.name != work_type.name:
+            existing = await DailyWorkTypeRepository.get_by_name(db, data.name)
+            if existing:
+                raise ValidationError("name", "この作業内容は既に存在します。")
+
+        return await DailyWorkTypeRepository.update(db, work_type, data)
+
+    @staticmethod
+    async def delete(db: AsyncSession, type_id: uuid.UUID) -> None:
+        work_type = await DailyWorkTypeRepository.get_by_id(db, type_id)
+        if not work_type:
+            raise NotFoundError("Daily Work Type not found")
+
+        await DailyWorkTypeRepository.delete(db, work_type)
+
+
+class FrequencyService:
+    """Service class for Frequency Master CRUD."""
+
+    @staticmethod
+    async def get_all(db: AsyncSession) -> Sequence[FrequencyModel]:
+        return await FrequencyRepository.get_all(db)
+
+    @staticmethod
+    async def get_by_id(db: AsyncSession, freq_id: uuid.UUID) -> FrequencyModel:
+        freq = await FrequencyRepository.get_by_id(db, freq_id)
+        if not freq:
+            raise NotFoundError("Frequency not found")
+        return freq
+
+    @staticmethod
+    async def create(db: AsyncSession, data: FrequencyCreate) -> FrequencyModel:
+        existing = await FrequencyRepository.get_by_name(db, data.name)
+        if existing:
+            if existing.is_active:
+                raise ValidationError("name", "この頻度は既に存在します。")
+            else:
+                existing.is_active = True
+                if data.sort_order is not None and data.sort_order > 0:
+                    existing.sort_order = data.sort_order
+                await db.flush()
+                await db.refresh(existing)
+                return existing
+
+        if data.sort_order == 0 or data.sort_order is None:
+            all_freqs = await FrequencyRepository.get_all(db)
+            data.sort_order = (max([f.sort_order for f in all_freqs], default=0) + 10)
+
+        return await FrequencyRepository.create(db, data)
+
+    @staticmethod
+    async def update(
+        db: AsyncSession, freq_id: uuid.UUID, data: FrequencyUpdate
+    ) -> FrequencyModel:
+        freq = await FrequencyRepository.get_by_id(db, freq_id)
+        if not freq:
+            raise NotFoundError("Frequency not found")
+
+        if data.name is not None and data.name != freq.name:
+            existing = await FrequencyRepository.get_by_name(db, data.name)
+            if existing:
+                raise ValidationError("name", "この頻度は既に存在します。")
+
+        return await FrequencyRepository.update(db, freq, data)
+
+    @staticmethod
+    async def delete(db: AsyncSession, freq_id: uuid.UUID) -> None:
+        freq = await FrequencyRepository.get_by_id(db, freq_id)
+        if not freq:
+            raise NotFoundError("Frequency not found")
+
+        await FrequencyRepository.delete(db, freq)

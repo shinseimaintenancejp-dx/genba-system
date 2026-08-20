@@ -23,6 +23,9 @@ export function mapContractToDefaultValues(contract: Contract): any {
     genbaId: contract.genba_id || "",
     customerId: contract.customer_id || undefined,
     partnerId: contract.partner_id || undefined,
+    partnerName: contract.partner_name || undefined,
+    genbaName: contract.genba_name || undefined,
+    status: contract.status || "DRAFT",
 
     startDate: contract.start_date ? contract.start_date.split("T")[0] : "",
     endDate: contract.end_date ? contract.end_date.split("T")[0] : undefined,
@@ -39,8 +42,8 @@ export function mapContractToDefaultValues(contract: Contract): any {
     workDays: contract.work_days || "",
     workSlots:
       contract.work_slots?.map((s) => ({
-        startTime: s.start_time || null,
-        endTime: s.end_time || null,
+        startTime: s.start_time ? s.start_time.substring(0, 5) : null,
+        endTime: s.end_time ? s.end_time.substring(0, 5) : null,
         breakMinutes: Number(s.break_minutes ?? 0),
         workDurationHours: (s as any).work_duration_hours ? Number((s as any).work_duration_hours) : undefined,
         sortOrder: Number(s.sort_order ?? 0),
@@ -69,6 +72,15 @@ export function mapContractToDefaultValues(contract: Contract): any {
         workContent: w.work_content || "",
         sortOrder: Number(w.sort_order ?? 0),
       })) || [],
+    dailyWorkContents:
+      contract.daily_work_contents?.map((w) => ({
+        id: w.id,
+        category: w.category || "",
+        area: w.area || "",
+        workContent: w.work_content || "",
+        frequency: w.frequency || "",
+        sortOrder: Number(w.sort_order ?? 0),
+      })) || [],
 
     // Other Specifics
     workType: contract.work_type,
@@ -85,5 +97,23 @@ export function mapContractToDefaultValues(contract: Contract): any {
             action: h.action,
           }))
         : defaultHolidays,
+
+    // Ordering Links
+    orderingLinks: contract.ordering_links?.map((l: any) => ({
+      id: l.id,
+      ordering_contract_id: l.ordering_contract_id,
+      receiving_contract_id: l.receiving_contract_id,
+      receiving_contract_name: l.receiving_contract_name,
+      receiving_contract_code: l.receiving_contract_code,
+      receiving_amount: l.receiving_amount,
+      assignment_type: l.assignment_type,
+      allocated_amount: l.allocated_amount ? Number(l.allocated_amount) : null,
+      allocated_percentage: l.allocated_percentage ? Number(l.allocated_percentage) : null,
+      remarks: l.remarks || "",
+      work_items: l.work_items?.map((wi: any) => ({
+        work_content_id: wi.work_content_id,
+        scope_detail: wi.scope_detail || "",
+      })) || [],
+    })) || [],
   };
 }

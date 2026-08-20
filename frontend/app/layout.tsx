@@ -16,12 +16,12 @@ const jetbrainsMono = { variable: "--font-jetbrains-mono" };
 // =============================================================================
 export const metadata: Metadata = {
   title: {
-    default: "現場管理システム | 株式会社Shinsei",
+    default: "現場管理システム | 株式会社シンセイ",
     template: "%s | 現場管理システム",
   },
   description:
-    "株式会社Shinseiの現場管理システム。359以上の現場情報を一元管理します。",
-  keywords: ["現場管理", "Shinsei", "清掃管理", "ビル管理"],
+    "株式会社シンセイの現場管理システム。359以上の現場情報を一元管理します。",
+  keywords: ["現場管理", "シンセイ", "清掃管理", "ビル管理"],
   authors: [{ name: "Shinsei Co., Ltd." }],
   robots: "noindex, nofollow",  // Internal system — do not index
   icons: {
@@ -46,7 +46,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 const RootLayout = ({
   children,
