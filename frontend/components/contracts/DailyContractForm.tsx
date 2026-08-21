@@ -265,10 +265,17 @@ export const DailyContractForm: React.FC<DailyContractFormProps> = ({
     }
   }, [defaultValues?.contractType, genbaDetail, methods]);
 
+  // Reset to 基本情報 tab whenever the user switches from view-only → edit mode
+  React.useEffect(() => {
+    if (!readOnly) {
+      setActiveTab("basic");
+    }
+  }, [readOnly]);
+
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col flex-1 h-full overflow-hidden">
-        <Tabs.Root defaultValue="basic" className="flex flex-col flex-1 h-full overflow-hidden">
+        <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 h-full overflow-hidden">
           <div className="px-6 pt-4 border-b border-slate-200 shrink-0 bg-slate-50">
             <Tabs.List className="flex gap-6">
               <Tabs.Trigger
