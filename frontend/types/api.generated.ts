@@ -1007,6 +1007,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contracts/{id}/linked-ordering-contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Linked Ordering Contracts
+         * @description Get all ordering contracts linked to a receiving contract.
+         */
+        get: operations["get_linked_ordering_contracts_api_v1_contracts__id__linked_ordering_contracts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{id}/cancel-with-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Contract With Links
+         * @description Cancel a receiving contract and all its linked ordering contracts.
+         */
+        post: operations["cancel_contract_with_links_api_v1_contracts__id__cancel_with_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/contracts/reports/profit": {
         parameters: {
             query?: never;
@@ -1108,7 +1148,10 @@ export interface paths {
         };
         /**
          * Get Contract History
-         * @description Get audit history for a specific contract.
+         * @description Get structured audit history for a specific contract.
+         *
+         *     Returns a diff-based response with Japanese field labels for each change.
+         *     Only includes entries where actual field values changed (no noise logs).
          */
         get: operations["get_contract_history_api_v1_contracts__id__history_get"];
         put?: never;
@@ -1816,6 +1859,21 @@ export interface components {
             amount: string;
             /** Service Category */
             service_category: string;
+            /** Work Content Summary */
+            work_content_summary?: string | null;
+            /** Work Type */
+            work_type?: string | null;
+            /** Sub Service Type */
+            sub_service_type?: string | null;
+            /** Work Execution Date */
+            work_execution_date?: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date?: string | null;
             /** Work Items */
             work_items?: components["schemas"]["PeriodicWorkContentResponse"][];
         };
@@ -1834,6 +1892,15 @@ export interface components {
              * Format: binary
              */
             file: string;
+        };
+        /** CancelWithLinksPayload */
+        CancelWithLinksPayload: {
+            /**
+             * End Date
+             * Format: date
+             * @description Date of cancellation
+             */
+            end_date: string;
         };
         /**
          * CleaningAreaCreate
@@ -2226,7 +2293,7 @@ export interface components {
              */
             genba_id: string;
             /** Customer Id */
-            customer_id: string | null;
+            customer_id?: string | null;
             /** Partner Id */
             partner_id: string | null;
             /** Created By */
@@ -2336,6 +2403,12 @@ export interface components {
             work_end_time?: string | null;
             /** Partner Id */
             partner_id?: string | null;
+            /** Genba Id */
+            genba_id?: string | null;
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Contract Type */
+            contract_type?: string | null;
             /** Contract Pdf Url */
             contract_pdf_url?: string | null;
             /** Work Type */
@@ -3840,6 +3913,24 @@ export interface components {
             /** Sort Order */
             sort_order?: number | null;
         };
+        /** LinkedOrderingContractResponse */
+        LinkedOrderingContractResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Contract Name */
+            contract_name: string;
+            /** Internal Code */
+            internal_code: string;
+            /** Status */
+            status: string;
+            /** Partner Id */
+            partner_id: string | null;
+            /** Partner Name */
+            partner_name?: string | null;
+        };
         /**
          * LoginRequest
          * @description Request body for POST /auth/login.
@@ -4830,6 +4921,8 @@ export interface components {
              * Format: uuid
              */
             genba_id: string;
+            /** Customer Id */
+            customer_id?: string | null;
             /** Genba Name */
             genba_name: string;
             /** Revenue */
@@ -8104,6 +8197,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataEnvelope_PartnerCompanyResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_linked_ordering_contracts_api_v1_contracts__id__linked_ordering_contracts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedOrderingContractResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_contract_with_links_api_v1_contracts__id__cancel_with_links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelWithLinksPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */

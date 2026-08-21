@@ -99,16 +99,7 @@ function PartnerHeader() {
   return (
     <header className="flex h-auto min-h-16 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
       <div className="flex flex-col justify-center">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase">パートナー向け管理画面</span>
-          {title && (
-            <>
-              <span className="text-slate-300">/</span>
-              <span className="text-xs font-semibold text-slate-600">{title}</span>
-            </>
-          )}
-        </div>
-        {title && <h1 className="text-xl font-bold text-slate-900 leading-tight mt-1">{title}</h1>}
+        {title && <h1 className="text-xl font-bold text-slate-900 leading-tight">{title}</h1>}
         {description && <div className="text-sm text-slate-500 mt-1">{description}</div>}
       </div>
       <div className="flex items-center gap-4">
