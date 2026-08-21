@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import type { Genba } from "@/types/genba";
 import { Plus, Search, Eye, Check, ChevronDown } from "lucide-react";
 
 export default function GenbaListPage() {
+  usePageHeader("現場一覧表", "登録されている現場の一覧を表示・編集します。");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -228,14 +230,7 @@ export default function GenbaListPage() {
     <div className="flex flex-col gap-6">
       {/* Header section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            現場一覧表
-          </h1>
-          <p className="text-sm text-slate-500">
-            登録されている現場の一覧を表示・編集します。
-          </p>
-        </div>
+        
         <div>
           <Link
             href="/genba/new"

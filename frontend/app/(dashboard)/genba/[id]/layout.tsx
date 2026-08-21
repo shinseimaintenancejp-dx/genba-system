@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React from "react";
 import Link from "next/link";
@@ -22,6 +23,25 @@ export default function GenbaDetailLayout({
 
   const { data: genba, isLoading, error } = useGenbaDetail(id);
   const { data: user } = useCurrentUser();
+
+  usePageHeader(
+    genba ? genba.property_name : null,
+    genba ? (
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset",
+            genba.status === "ACTIVE"
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-600/10"
+              : "bg-slate-50 text-slate-600 ring-slate-500/10"
+          )}
+        >
+          {genba.status === "ACTIVE" ? "稼働中" : "終了"}
+        </span>
+        <span>取引先: {genba.customer.full_name}</span>
+      </div>
+    ) : null
+  );
 
   // Define tabs list
   const tabs = [
@@ -101,33 +121,6 @@ export default function GenbaDetailLayout({
           </Link>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  {genba.property_name}
-                </h1>
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset",
-                    genba.status === "ACTIVE"
-                      ? "bg-emerald-50 text-emerald-700 ring-emerald-600/10"
-                      : "bg-slate-50 text-slate-600 ring-slate-500/10"
-                  )}
-                >
-                  {genba.status === "ACTIVE" ? "稼働中" : "終了"}
-                </span>
-              </div>
-              <p className="text-sm text-slate-500 mt-0.5">
-                取引先: {genba.customer.full_name}
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Tabs navigation */}

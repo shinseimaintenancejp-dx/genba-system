@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState, useRef, useEffect } from "react";
 import { useCurrentUser } from "@/hooks/useAuth";
@@ -16,6 +17,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import type { Contract } from "@/types/contract";
 
 export default function ReceivingContractsPage() {
+  usePageHeader("取引先契約", "取引先（顧客）との元請契約を管理します。");
   const { data: currentUser } = useCurrentUser();
   const canWrite = currentUser && ["ADMIN", "SENIOR_STAFF", "INTERNAL_STAFF"].includes(currentUser.role);
 
@@ -203,10 +205,7 @@ const { data: contractsData, isLoading: isLoadingContracts } = useContracts({
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
             <Users className="h-5 w-5 text-[#1E60F2]" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">取引先契約</h1>
-            <p className="text-sm text-slate-500">取引先（顧客）との元請契約を管理します。</p>
-          </div>
+          
         </div>
         {canWrite && (
           <button

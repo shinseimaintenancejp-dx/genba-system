@@ -1,3 +1,4 @@
+import { usePageHeader } from "@/hooks/usePageHeader";
 'use client';
 
 import { useState } from 'react';
@@ -48,6 +49,7 @@ async function fetchQuotations(): Promise<Quotation[]> {
 }
 
 export default function QuotationsPage() {
+  usePageHeader("見積管理", "顧客向けの見積書を作成・管理します。");
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: quotations = [], isLoading } = useQuery({
@@ -63,12 +65,7 @@ export default function QuotationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">見積管理</h1>
-          <p className="text-sm text-muted-foreground">
-            顧客向けの見積書を作成・管理します。
-          </p>
-        </div>
+        
         <Button className="h-10 px-4 text-sm bg-[#1E60F2] hover:bg-[#0F4FD0] md:h-[52px] md:px-6 md:text-base">
           <FilePlus className="mr-2 h-4 w-4" />
           見積書作成

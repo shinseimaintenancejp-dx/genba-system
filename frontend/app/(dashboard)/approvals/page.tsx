@@ -1,3 +1,4 @@
+import { usePageHeader } from "@/hooks/usePageHeader";
 'use client';
 
 import { useState } from 'react';
@@ -38,6 +39,7 @@ async function fetchApprovals(): Promise<ApprovalRequest[]> {
 }
 
 export default function ApprovalsPage() {
+  usePageHeader("承認待ち一覧", "担当者から申請された見積書・請求書の承認・却下を行います。");
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const { data: approvals = [], isLoading } = useQuery({
@@ -64,12 +66,7 @@ export default function ApprovalsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">承認待ち一覧</h1>
-        <p className="text-sm text-muted-foreground">
-          担当者から申請された見積書・請求書の承認・却下を行います。
-        </p>
-      </div>
+      
 
       <div className="rounded-md border">
         <Table>

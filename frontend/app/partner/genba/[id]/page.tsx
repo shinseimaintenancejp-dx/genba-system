@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -46,6 +47,8 @@ export default function PartnerGenbaDetailPage() {
     { id: "photos", label: "写真・報告", icon: Camera },
   ] as const;
 
+  usePageHeader(genba?.property_name ?? null, genba?.address ?? null);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -56,14 +59,6 @@ export default function PartnerGenbaDetailPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            {genba.property_name}
-          </h1>
-          <p className="text-sm text-slate-500">
-            {genba.address}
-          </p>
-        </div>
       </div>
 
       {/* Tabs */}

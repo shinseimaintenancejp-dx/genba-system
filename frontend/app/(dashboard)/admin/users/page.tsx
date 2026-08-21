@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { RoleGuard } from "@/components/layout/RoleGuard";
@@ -556,6 +557,7 @@ function DeleteConfirmDialog({ user, onClose, onConfirm, isDeleting }: DeleteCon
 
 export default function AdminUsersPage() {
   const { data, isLoading, error } = useUsers();
+  usePageHeader("ユーザー管理", `${data?.total ?? 0}名のユーザー`);
   const deleteUser = useDeleteUser();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -588,12 +590,7 @@ export default function AdminUsersPage() {
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">ユーザー管理</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {data?.total ?? 0}名のユーザー
-            </p>
-          </div>
+          
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 active:scale-95 transition-all shadow-sm"

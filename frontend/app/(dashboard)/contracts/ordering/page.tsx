@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { useCurrentUser } from "@/hooks/useAuth";
@@ -16,6 +17,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import type { Contract } from "@/types/contract";
 
 export default function OrderingContractsPage() {
+  usePageHeader("協力会社契約", "協力会社（パートナー）への下請契約を管理します。");
   const { data: currentUser } = useCurrentUser();
   const canWrite = currentUser && ["ADMIN", "SENIOR_STAFF", "INTERNAL_STAFF"].includes(currentUser.role);
 
@@ -179,10 +181,7 @@ const { data: contractsData, isLoading: isLoadingContracts } = useContracts({
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
             <Briefcase className="h-5 w-5 text-amber-600" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">協力会社契約</h1>
-            <p className="text-sm text-slate-500">協力会社（パートナー）への下請契約を管理します。</p>
-          </div>
+          
         </div>
         {canWrite && (
           <button

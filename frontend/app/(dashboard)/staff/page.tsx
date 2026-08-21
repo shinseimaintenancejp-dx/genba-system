@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { useStaffList, useCreateStaff, useUpdateStaff, type Staff } from "@/hooks/useStaff";
@@ -20,6 +21,7 @@ const staffSchema = z.object({
 type StaffFormValues = z.infer<typeof staffSchema>;
 
 export default function StaffPage() {
+  usePageHeader("社内担当者管理", "社内の管理スタッフ・責任者の連絡先を登録・編集します。");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [modalState, setModalState] = useState<{ open: boolean; staff?: Staff } | null>(null);
@@ -147,14 +149,7 @@ export default function StaffPage() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            社内担当者管理
-          </h1>
-          <p className="text-sm text-slate-500">
-            社内の管理スタッフ・責任者の連絡先を登録・編集します。
-          </p>
-        </div>
+        
         <div>
           <button
             onClick={() => openModal()}

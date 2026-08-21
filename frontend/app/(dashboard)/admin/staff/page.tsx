@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState, useRef, useEffect } from "react";
 import { RoleGuard } from "@/components/layout/RoleGuard";
@@ -39,6 +40,7 @@ const MultiSelectPositions: React.FC<MultiSelectPositionsProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+  usePageHeader("従業員管理", "自社スタッフ（担当者）の登録・編集を行います。");
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -567,12 +569,7 @@ export default function StaffManagementPage() {
       <div className="space-y-6">
         {/* Page Header Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">従業員管理</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              自社スタッフ（担当者）の登録・編集を行います。
-            </p>
-          </div>
+          
           <div>
             <button
               onClick={() => setShowCreateDialog(true)}

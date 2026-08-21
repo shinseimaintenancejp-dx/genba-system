@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { ApprovalBadge } from '@/components/common/ApprovalBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePageHeader } from '@/hooks/usePageHeader';
 import { Invoice } from '@/types/finance';
 
 // Mock function
@@ -55,6 +56,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     return <div>請求書が見つかりません</div>;
   }
 
+  usePageHeader(`請求書詳細: ${invoice.invoice_number}`);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -64,11 +67,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             <span className="sr-only">戻る</span>
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            請求書詳細: {invoice.invoice_number}
-          </h1>
-        </div>
         <div className="ml-auto flex items-center gap-2">
           {invoice.status === 'AUTO_GENERATED' && (
             <Button className="bg-[#10B981] hover:bg-[#047857]">

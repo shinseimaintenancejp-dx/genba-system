@@ -197,3 +197,17 @@ All list management pages (e.g. `現場一覧`, `取引先一覧`, `契約一覧
 5. **Data Table Component:**
    * All list management screens MUST use the shared `<DataTable>` component (`@/components/common/DataTable`).
    * Custom ad-hoc `<table>` implementations on list screens are strictly prohibited to guarantee uniform skeleton loading, pagination, and empty state behaviors.
+
+### 1.5. Page Titles & Headers (オフィス管理パネル)
+- **CRITICAL RULE**: All page titles (`<h1>`) and feature descriptions MUST NOT be hardcoded inside the page body.
+- Instead, they MUST be dynamically passed to the global Header (オフィス管理パネル) using the `usePageHeader` custom hook.
+- Example usage in a page component:
+  ```tsx
+  import { usePageHeader } from "@/hooks/usePageHeader";
+  
+  export default function MyPage() {
+    usePageHeader("Tên trang (Page Title)", "Mô tả tính năng (Feature Description)");
+    return <div>Content...</div>;
+  }
+  ```
+- The description can accept a ReactNode if badges or additional metadata need to be displayed in the header.

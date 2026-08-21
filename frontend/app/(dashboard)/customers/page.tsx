@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { 
@@ -61,6 +62,7 @@ type CustomerFormValues = z.infer<typeof customerSchema>;
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function CustomersPage() {
+  usePageHeader("取引先管理", "清掃業務等を依頼する顧客・取引先の情報を管理します。");
   const { data: currentUser } = useCurrentUser();
   const [search, setSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);

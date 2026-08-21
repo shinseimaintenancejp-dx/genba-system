@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -12,6 +13,7 @@ import { Search, Eye, Check, ChevronDown, Calendar, Layers, AlertTriangle, X, Ex
 import * as Dialog from "@radix-ui/react-dialog";
 
 export default function PeriodicGenbaListPage() {
+  usePageHeader("定期現場一覧表", "定期契約がある現場・作業の一覧を表示・管理します。");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -245,14 +247,7 @@ export default function PeriodicGenbaListPage() {
     <div className="flex flex-col gap-6">
       {/* Header section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            定期現場一覧表
-          </h1>
-          <p className="text-sm text-slate-500">
-            定期契約がある現場・作業の一覧を表示・管理します。
-          </p>
-        </div>
+        
       </div>
 
       {/* Filters section */}

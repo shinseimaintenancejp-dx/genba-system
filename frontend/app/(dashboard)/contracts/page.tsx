@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { useCurrentUser } from "@/hooks/useAuth";
@@ -22,6 +23,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import type { Contract } from "@/types/contract";
 
 export default function ContractsPage() {
+  usePageHeader("契約管理", "取引先との元請契約や協力会社への下請契約を管理します。");
   const { data: currentUser } = useCurrentUser();
   const canWrite = currentUser && ["ADMIN", "SENIOR_STAFF", "INTERNAL_STAFF"].includes(currentUser.role);
 

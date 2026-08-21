@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import {
@@ -46,6 +47,7 @@ const partnerSchema = z.object({
 type PartnerFormValues = z.infer<typeof partnerSchema>;
 
 export default function PartnersPage() {
+  usePageHeader("協力会社管理", "清掃業務等を委託する協力会社（パートナー）の情報を管理します。");
   const { data: currentUser } = useCurrentUser();
   const [search, setSearch] = useState("");
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
@@ -138,14 +140,7 @@ export default function PartnersPage() {
     <div className="flex flex-col gap-6">
       {/* Header section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            協力会社管理
-          </h1>
-          <p className="text-sm text-slate-500">
-            清掃業務等を委託する協力会社（パートナー）の情報を管理します。
-          </p>
-        </div>
+        
         {canWrite && (
           <div>
             <button

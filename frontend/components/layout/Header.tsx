@@ -5,22 +5,32 @@ import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { getRoleLabel } from "@/lib/auth";
 import { LogOut, User as UserIcon, Loader2 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { useHeaderStore } from "@/store/useHeaderStore";
 
 export const Header: React.FC = () => {
   const { data: user } = useCurrentUser();
   const logoutMutation = useLogout();
+  const { title, description } = useHeaderStore();
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
 
   return (
-    <header className="flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-6 shrink-0">
+    <header className="flex h-auto min-h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-6 shrink-0 py-3">
       {/* Search Bar Placeholder or Title */}
-      <div className="flex items-center">
-        <h2 className="text-sm font-semibold text-slate-500 tracking-wider uppercase">
-          オフィス管理パネル
-        </h2>
+      <div className="flex flex-col justify-center">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase">オフィス管理パネル</span>
+          {title && (
+            <>
+              <span className="text-slate-300">/</span>
+              <span className="text-xs font-semibold text-slate-600">{title}</span>
+            </>
+          )}
+        </div>
+        {title && <h1 className="text-xl font-bold text-slate-900 leading-tight mt-1">{title}</h1>}
+        {description && <div className="text-sm text-slate-500 mt-1">{description}</div>}
       </div>
 
       {/* User Actions */}

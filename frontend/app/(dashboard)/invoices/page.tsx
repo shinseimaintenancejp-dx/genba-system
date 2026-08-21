@@ -1,3 +1,4 @@
+import { usePageHeader } from "@/hooks/usePageHeader";
 'use client';
 
 import { useState } from 'react';
@@ -50,6 +51,7 @@ async function fetchInvoices(): Promise<Invoice[]> {
 }
 
 export default function InvoicesPage() {
+  usePageHeader("請求管理", "顧客への請求書発行および入金状況を管理します。");
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: invoices = [], isLoading } = useQuery({

@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -9,6 +10,7 @@ import type { Genba } from "@/types/genba";
 import { Search, Eye } from "lucide-react";
 
 export default function PartnerGenbaListPage() {
+  usePageHeader("担当現場一覧", "担当している現場の一覧を表示します。");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("ACTIVE");
   const [page, setPage] = useState(1);
@@ -78,14 +80,7 @@ export default function PartnerGenbaListPage() {
     <div className="flex flex-col gap-6">
       {/* Header section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            担当現場一覧
-          </h1>
-          <p className="text-sm text-slate-500">
-            担当している現場の一覧を表示します。
-          </p>
-        </div>
+        
       </div>
 
       {/* Filters section */}

@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ const genbaSchema = z.object({
 type GenbaFormValues = z.infer<typeof genbaSchema>;
 
 export default function NewGenbaPage() {
+  usePageHeader("現場登録", "新規に管理する現場の情報を登録します。");
   const router = useRouter();
   const createGenbaMutation = useCreateGenba();
   const { data: customerData } = useCustomers({ limit: 100 });
@@ -170,14 +172,7 @@ export default function NewGenbaPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header section */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          現場登録
-        </h1>
-        <p className="text-sm text-slate-500">
-          新規に管理する現場の情報を登録します。
-        </p>
-      </div>
+      
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         

@@ -1,4 +1,5 @@
 "use client";
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import React, { useState } from "react";
 import { RoleGuard } from "@/components/layout/RoleGuard";
@@ -35,6 +36,7 @@ const CreatePositionDialog: React.FC<CreateDialogProps> = ({ onClose }) => {
   const { mutate: createPosition, isPending } = useCreatePosition();
 
   const handleSubmit = (e: React.FormEvent) => {
+  usePageHeader("役職管理", "システムで使用する役職（マスターデータ）の登録・編集を行います。");
     e.preventDefault();
     setError(null);
     createPosition(formData, {
@@ -377,12 +379,7 @@ export default function PositionManagementPage() {
       <div className="space-y-6">
         {/* Page Header Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">役職管理</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              システムで使用する役職（マスターデータ）の登録・編集を行います。
-            </p>
-          </div>
+          
           <div>
             <button
               onClick={() => setShowCreateDialog(true)}
