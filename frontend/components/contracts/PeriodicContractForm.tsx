@@ -992,12 +992,20 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
                   const rc = teikiReceivingContracts.find(c => c.id === selectedReceivingContractId);
                   const rcAmt = rc?.amount ?? selectedReceivingContractDetail?.amount;
                   const currentAmt = methods.watch("amount") || 0;
-                  if (rcAmt != null && currentAmt > Number(rcAmt)) {
-                    return (
-                      <p className="text-xs font-semibold text-red-500 mt-1">
-                        ※ 委託金額が元請契約の金額を超えています。
-                      </p>
-                    );
+                  if (rcAmt != null) {
+                    if (currentAmt > Number(rcAmt)) {
+                      return (
+                        <p className="text-xs font-semibold text-red-500 mt-1">
+                          ※ 委託金額が元請契約の金額を超えています。
+                        </p>
+                      );
+                    } else if (currentAmt > Number(rcAmt) * 0.85) {
+                      return (
+                        <p className="text-xs font-semibold text-orange-500 mt-1">
+                          ※ 委託金額が元請契約の金額の85%を超えています。
+                        </p>
+                      );
+                    }
                   }
                   return null;
                 })()
