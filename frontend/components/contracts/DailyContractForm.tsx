@@ -82,16 +82,7 @@ const dailyContractSchema = z.object({
 }).refine(data => data.contractType !== "ORDERING" || !!data.partnerId, {
   message: "協力会社を選択してください",
   path: ["partnerId"],
-}).refine(
-  (data) => {
-    if (!data.endDate || !data.startDate) return true;
-    return new Date(data.endDate) >= new Date(data.startDate);
-  },
-  {
-    message: "終了日は開始日以降の日付を指定してください",
-    path: ["endDate"],
-  }
-);
+});
 
 type DailyContractFormValues = z.infer<typeof dailyContractSchema>;
 
@@ -225,7 +216,9 @@ export const DailyContractForm: React.FC<DailyContractFormProps> = ({
   });
 
       const [pdfHover, setPdfHover] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
   const contractType = methods.watch("contractType");
+  const startDate = methods.watch("startDate");
   const watchGenbaId = methods.watch("genbaId");
   const activeGenbaId = genbaId || watchGenbaId;
   const { data: genbaDetail } = useGenbaDetail(activeGenbaId);
@@ -447,6 +440,7 @@ export const DailyContractForm: React.FC<DailyContractFormProps> = ({
               <label className="text-sm font-semibold text-slate-700">終了日</label>
               <input
                 type="date"
+                min={startDate || undefined}
                 {...methods.register("endDate")}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
               />

@@ -192,6 +192,96 @@ class ContractService:
         )
         return items, total
 
+    def _build_contract_snapshot(self, contract: "ContractModel") -> dict:
+        """Build a comprehensive snapshot dict of the current contract state.
+
+        Captures all user-visible fields including nested work content details.
+        Used as old_value (before update) and new_value (after update) in audit logs.
+        Never log sensitive internal IDs or system fields.
+        """
+        # Base fields
+        snapshot: dict = {
+            "contract_name": contract.contract_name,
+            "status": contract.status,
+            "contract_type": contract.contract_type,
+            "service_category": contract.service_category,
+            "internal_code": contract.internal_code,
+            "amount": float(contract.amount) if contract.amount is not None else None,
+            "tax_type": contract.tax_type,
+            "start_date": str(contract.start_date) if contract.start_date else None,
+            "end_date": str(contract.end_date) if contract.end_date else None,
+            "work_type": contract.work_type,
+            "sub_service_type": contract.sub_service_type,
+            "work_execution_date": str(contract.work_execution_date) if contract.work_execution_date else None,
+            "work_content_summary": contract.work_content_summary,
+            "auto_renew": contract.auto_renew,
+            "invoice_required": contract.invoice_required,
+        }
+
+        # Work slots (ca làm việc)
+        if contract.work_slots:
+            snapshot["work_slots"] = [
+                {
+                    "start_time": str(s.start_time) if s.start_time else None,
+                    "end_time": str(s.end_time) if s.end_time else None,
+                    "break_minutes": s.break_minutes,
+                    "work_duration_hours": float(s.work_duration_hours) if s.work_duration_hours else None,
+                }
+                for s in sorted(contract.work_slots, key=lambda x: x.sort_order)
+            ]
+
+        # Worker counts (số nhân sự)
+        if contract.worker_counts:
+            snapshot["worker_counts"] = [
+                {
+                    "worker_count": w.worker_count,
+                    "work_duration_hours": float(w.work_duration_hours) if w.work_duration_hours else None,
+                    "total_hours": float(w.total_hours) if w.total_hours else None,
+                }
+                for w in sorted(contract.worker_counts, key=lambda x: x.sort_order)
+            ]
+
+        # Holiday rules (quy tắc ngày lễ)
+        if contract.holiday_rules:
+            snapshot["holiday_rules"] = [
+                {"rule_type": h.rule_type, "action": h.action}
+                for h in contract.holiday_rules
+            ]
+
+        # Periodic schedule (lịch định kỳ)
+        if contract.periodic_schedule:
+            ps = contract.periodic_schedule
+            snapshot["periodic_schedule"] = {
+                "frequency_per_year": ps.frequency_per_year,
+                "work_months": ps.work_months,
+                "work_days": ps.work_days,
+            }
+
+        # Periodic work contents (nội dung công việc định kỳ chi tiết)
+        if contract.periodic_work_contents:
+            snapshot["periodic_work_contents"] = [
+                {
+                    "floor": p.floor,
+                    "area": p.area,
+                    "work_content": p.work_content,
+                }
+                for p in sorted(contract.periodic_work_contents, key=lambda x: x.sort_order)
+            ]
+
+        # Daily work contents (nội dung công việc hàng ngày chi tiết)
+        if contract.daily_work_contents:
+            snapshot["daily_work_contents"] = [
+                {
+                    "category": d.category,
+                    "area": d.area,
+                    "work_content": d.work_content,
+                    "frequency": d.frequency,
+                }
+                for d in sorted(contract.daily_work_contents, key=lambda x: x.sort_order)
+            ]
+
+        return snapshot
+
     def _calculate_duration(self, start_time: time | None, end_time: time | None) -> Decimal | None:
         """Calculate duration in hours from start and end time objects."""
         if not start_time or not end_time:
@@ -414,19 +504,17 @@ class ContractService:
                 await ordering_link_repository.create_link(db, created_contract.id, link_data)
 
 
-        # Audit log
-        new_val = {
-            "internal_code": contract.internal_code,
-            "contract_type": contract.contract_type,
-            "amount": float(contract.amount),
-        }
+        # Audit log — re-fetch to get relations populated before building snapshot
+        full_for_snapshot = await ContractRepository.get_with_relations(db, created_contract.id)
+        snapshot_target = full_for_snapshot if full_for_snapshot else created_contract
+        new_val = self._build_contract_snapshot(snapshot_target)
         await audit_service.log(
             session=db,
             action="CREATE",
             entity_type="contract",
             entity_id=str(created_contract.id),
             user_id=user_id,
-            new_value=json.dumps(new_val, ensure_ascii=False),
+            new_value=json.dumps(new_val, ensure_ascii=False, default=str),
         )
 
         # Re-fetch with all relations eagerly loaded so that genba_name,
@@ -454,11 +542,8 @@ class ContractService:
         if end_date and start_date > end_date:
             raise ValidationError("start_date", "契約開始日は終了日より前の日付にしてください")
 
-        old_val = {
-            "status": contract.status,
-            "amount": float(contract.amount),
-            "service_type": contract.service_type,
-        }
+        # Snapshot BEFORE applying updates — must happen before any setattr
+        old_val = self._build_contract_snapshot(contract)
 
         if data.contract_name is not None:
             await self._check_duplicate_contract_name(
@@ -637,21 +722,20 @@ class ContractService:
         if not contract:
             raise NotFoundError("契約が見つかりません")
 
-        new_val = {
-            "status": contract.status,
-            "amount": float(contract.amount),
-            "service_type": contract.service_type,
-        }
+        # Snapshot AFTER all updates applied (including nested relations)
+        new_val = self._build_contract_snapshot(contract)
 
-        await audit_service.log(
-            session=db,
-            action="UPDATE",
-            entity_type="contract",
-            entity_id=str(contract.id),
-            user_id=user_id,
-            old_value=json.dumps(old_val, ensure_ascii=False),
-            new_value=json.dumps(new_val, ensure_ascii=False),
-        )
+        # Only write audit log if something actually changed
+        if json.dumps(old_val, sort_keys=True, default=str) != json.dumps(new_val, sort_keys=True, default=str):
+            await audit_service.log(
+                session=db,
+                action="UPDATE",
+                entity_type="contract",
+                entity_id=str(contract.id),
+                user_id=user_id,
+                old_value=json.dumps(old_val, ensure_ascii=False, default=str),
+                new_value=json.dumps(new_val, ensure_ascii=False, default=str),
+            )
 
         # Re-fetch with all relations eagerly loaded so that genba_name,
         # customer_name, partner_name are populated before Pydantic serialization.
@@ -666,11 +750,7 @@ class ContractService:
             from fastapi import HTTPException
             raise HTTPException(status_code=400, detail="解約済みの契約は削除できません。")
 
-        old_val = {
-            "status": contract.status,
-            "amount": float(contract.amount),
-            "service_type": contract.service_type,
-        }
+        old_val = self._build_contract_snapshot(contract)
         await ContractRepository.delete_contract(db, contract)
 
         await audit_service.log(
@@ -679,7 +759,7 @@ class ContractService:
             entity_type="contract",
             entity_id=str(id),
             user_id=user_id,
-            old_value=json.dumps(old_val, ensure_ascii=False),
+            old_value=json.dumps(old_val, ensure_ascii=False, default=str),
         )
 
 

@@ -193,24 +193,183 @@ async def get_contract_history(
     id: uuid.UUID,
     current_user: CurrentUser,
 ) -> dict:
-    """Get audit history for a specific contract."""
+    """Get structured audit history for a specific contract.
+
+    Returns a diff-based response with Japanese field labels for each change.
+    Only includes entries where actual field values changed (no noise logs).
+    """
+    import json as _json
     from sqlalchemy import text
+
+    # Field label mapping: technical key -> Japanese display name
+    FIELD_LABEL_MAP: dict[str, str] = {
+        "contract_name": "契約名",
+        "status": "ステータス",
+        "contract_type": "契約種別",
+        "service_category": "サービス区分",
+        "internal_code": "管理番号",
+        "amount": "金額",
+        "tax_type": "消費税",
+        "start_date": "開始日",
+        "end_date": "終了日",
+        "work_type": "作業種別",
+        "sub_service_type": "サービス区分（詳細）",
+        "work_execution_date": "作業実施日",
+        "work_content_summary": "作業内容概要",
+        "auto_renew": "自動更新",
+        "invoice_required": "請求書発行",
+        "work_slots": "作業時間帯",
+        "worker_counts": "人員配置",
+        "holiday_rules": "祝日対応ルール",
+        "periodic_schedule": "定期スケジュール",
+        "periodic_work_contents": "定期作業内容",
+        "daily_work_contents": "日常作業内容",
+    }
+
+    # Status/value display labels
+    STATUS_LABEL: dict[str, str] = {
+        "ACTIVE": "有効",
+        "DRAFT": "下書き",
+        "CANCELLED": "解約済み",
+        "EXPIRED": "期限切れ",
+    }
+    TAX_LABEL: dict[str, str] = {
+        "EXCLUSIVE": "税抜",
+        "INCLUSIVE": "税込",
+        "EXEMPT": "非課税",
+    }
+    ACTION_LABEL: dict[str, str] = {
+        "CREATE": "新規登録",
+        "UPDATE": "更新",
+        "DELETE": "削除",
+        "CANCEL": "解約",
+    }
+
+    def _format_value(key: str, val: object) -> str:
+        """Format a raw value for human-readable display in Japanese."""
+        if val is None:
+            return "—"
+        if key == "amount":
+            try:
+                return f"{int(float(str(val))):,} 円"
+            except (ValueError, TypeError):
+                return str(val)
+        if key == "status":
+            return STATUS_LABEL.get(str(val), str(val))
+        if key == "tax_type":
+            return TAX_LABEL.get(str(val), str(val))
+        if key in ("start_date", "end_date", "work_execution_date"):
+            # Format YYYY-MM-DD → YYYY年MM月DD日
+            try:
+                parts = str(val).split("-")
+                if len(parts) == 3:
+                    return f"{parts[0]}年{parts[1]}月{parts[2]}日"
+            except Exception:
+                pass
+        if key in ("auto_renew", "invoice_required"):
+            return "あり" if val else "なし"
+        if isinstance(val, (list, dict)):
+            return _json.dumps(val, ensure_ascii=False)
+        return str(val)
+
+    def _compute_changed_fields(old: dict | None, new: dict | None) -> list[dict]:
+        """Compute a list of {field, label, old, new} for fields that changed."""
+        if not old and not new:
+            return []
+        if not old:
+            # CREATE: just return all non-null new fields
+            return [
+                {
+                    "field": k,
+                    "label": FIELD_LABEL_MAP.get(k, k),
+                    "old": None,
+                    "new": _format_value(k, v),
+                }
+                for k, v in (new or {}).items()
+                if v is not None and v != [] and v != {}
+            ]
+        if not new:
+            # DELETE: just return old fields
+            return [
+                {
+                    "field": k,
+                    "label": FIELD_LABEL_MAP.get(k, k),
+                    "old": _format_value(k, v),
+                    "new": None,
+                }
+                for k, v in (old or {}).items()
+                if v is not None
+            ]
+        # UPDATE: return fields where old != new
+        all_keys = set(old.keys()) | set(new.keys())
+        changed = []
+        for k in sorted(all_keys):
+            old_v = old.get(k)
+            new_v = new.get(k)
+            # Normalize to JSON string for comparison to handle list/dict equality
+            old_str = _json.dumps(old_v, sort_keys=True, default=str)
+            new_str = _json.dumps(new_v, sort_keys=True, default=str)
+            if old_str != new_str:
+                changed.append(
+                    {
+                        "field": k,
+                        "label": FIELD_LABEL_MAP.get(k, k),
+                        "old": _format_value(k, old_v),
+                        "new": _format_value(k, new_v),
+                    }
+                )
+        return changed
+
     result = await db.execute(
         text("""
-            SELECT al.id, al.action, al.old_value, al.new_value, 
-                   al.created_at, u.last_name || ' ' || u.first_name as user_name
+            SELECT al.id, al.action, al.old_value, al.new_value,
+                   al.created_at,
+                   u.last_name || ' ' || u.first_name AS user_name
             FROM audit_logs al
             LEFT JOIN users u ON u.id = al.user_id
             WHERE al.entity_id = CAST(:cid AS uuid)
-              AND al.entity_type IN ('contract', 'contract_holiday_rules', 'contract_ordering_links')
+              AND al.entity_type = 'contract'
               AND al.action != 'VIEW'
             ORDER BY al.created_at DESC
-            LIMIT 50
+            LIMIT 100
         """),
-        {"cid": str(id)}
+        {"cid": str(id)},
     )
     rows = result.mappings().all()
-    return {"items": [dict(r) for r in rows], "total": len(rows)}
+
+    items = []
+    for row in rows:
+        action = row["action"]
+        old_raw = row["old_value"]
+        new_raw = row["new_value"]
+
+        try:
+            old_dict: dict | None = _json.loads(old_raw) if old_raw else None
+        except Exception:
+            old_dict = None
+        try:
+            new_dict: dict | None = _json.loads(new_raw) if new_raw else None
+        except Exception:
+            new_dict = None
+
+        changed_fields = _compute_changed_fields(old_dict, new_dict)
+
+        # Skip UPDATE entries where no fields actually changed (noise reduction)
+        if action == "UPDATE" and not changed_fields:
+            continue
+
+        items.append(
+            {
+                "id": str(row["id"]),
+                "action": action,
+                "action_label": ACTION_LABEL.get(action, action),
+                "changed_fields": changed_fields,
+                "changed_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "changed_by": row["user_name"] or "システム",
+            }
+        )
+
+    return {"items": items, "total": len(items)}
 
 
 @router.put(

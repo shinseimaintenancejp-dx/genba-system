@@ -75,16 +75,7 @@ const periodicContractSchema = z.object({
 }).refine(data => data.contractType !== "ORDERING" || (data.orderingLinks && data.orderingLinks.length > 0 && !!data.orderingLinks[0].receiving_contract_id), {
   message: "対象の受注契約を選択してください",
   path: ["orderingLinks"],
-}).refine(
-  (data) => {
-    if (!data.endDate || !data.startDate) return true;
-    return new Date(data.endDate) >= new Date(data.startDate);
-  },
-  {
-    message: "終了日は開始日以降の日付を指定してください",
-    path: ["endDate"],
-  }
-);
+});
 
 type PeriodicContractFormValues = z.infer<typeof periodicContractSchema>;
 
@@ -229,7 +220,9 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
   const isPending = isCreating || isUpdating || isDeleting || isCancellingLinks;
 
   const [pdfHover, setPdfHover] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
   const contractType = methods.watch("contractType");
+  const startDate = methods.watch("startDate");
   const watchGenbaId = methods.watch("genbaId");
   const activeGenbaId = genbaId || watchGenbaId;
   const { data: genbaDetail } = useGenbaDetail(activeGenbaId);
@@ -1035,7 +1028,7 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
               <label className="text-sm font-semibold text-slate-700">終了日</label>
               <input
                 type="date"
-                min={contractType === "ORDERING" ? selectedReceivingContractDetail?.start_date : undefined}
+                min={startDate || (contractType === "ORDERING" ? selectedReceivingContractDetail?.start_date : undefined)}
                 {...methods.register("endDate")}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
               />

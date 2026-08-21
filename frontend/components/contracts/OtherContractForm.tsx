@@ -78,16 +78,7 @@ const otherContractSchema = z.object({
 }, {
   message: "対象の受注契約を選択してください",
   path: ["orderingLinks"],
-}).refine(
-  (data) => {
-    if (!data.endDate || !data.startDate) return true;
-    return new Date(data.endDate) >= new Date(data.startDate);
-  },
-  {
-    message: "終了日は開始日以降の日付を指定してください",
-    path: ["endDate"],
-  }
-);
+});
 
 type OtherContractFormValues = z.infer<typeof otherContractSchema>;
 
@@ -215,6 +206,7 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
 
   const [pdfHover, setPdfHover] = useState(false);
   const contractType = methods.watch("contractType");
+  const startDate = methods.watch("startDate");
   const watchGenbaId = methods.watch("genbaId");
   const activeGenbaId = genbaId || watchGenbaId;
   const { data: genbaDetail } = useGenbaDetail(activeGenbaId);
@@ -740,7 +732,7 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
               <label className="text-sm font-semibold text-slate-700">終了日</label>
               <input
                 type="date"
-                min={contractType === "ORDERING" ? selectedReceivingContractDetail?.start_date : undefined}
+                min={startDate || (contractType === "ORDERING" ? selectedReceivingContractDetail?.start_date : undefined)}
                 {...methods.register("endDate")}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
               />
