@@ -9,7 +9,7 @@ import * as z from "zod";
 import { useCreateGenba } from "@/hooks/useGenba";
 import { useCustomers, useCustomerContacts } from "@/hooks/useCustomers";
 import { useStaffList } from "@/hooks/useStaff";
-import { Loader2, AlertTriangle, X, Plus, Trash2 } from "lucide-react";
+import { Loader2, AlertTriangle, X, Plus, Trash2 , Building2 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { DuplicateWarning, Genba } from "@/types/genba";
 
@@ -55,7 +55,7 @@ const genbaSchema = z.object({
 type GenbaFormValues = z.infer<typeof genbaSchema>;
 
 export default function NewGenbaPage() {
-  usePageHeader("現場登録", "新規に管理する現場の情報を登録します。");
+  usePageHeader("現場登録", "新規に管理する現場の情報を登録します。", Building2);
   const router = useRouter();
   const createGenbaMutation = useCreateGenba();
   const { data: customerData } = useCustomers({ limit: 100 });

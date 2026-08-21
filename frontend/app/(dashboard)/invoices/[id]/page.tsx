@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle , Receipt } from 'lucide-react';
 import Link from 'next/link';
 
 import { ApprovalBadge } from '@/components/common/ApprovalBadge';
@@ -56,7 +56,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     return <div>請求書が見つかりません</div>;
   }
 
-  usePageHeader(`請求書詳細: ${invoice.invoice_number}`);
+  usePageHeader(`請求書詳細: ${invoice.invoice_number}`, null, Receipt);
 
   return (
     <div className="space-y-6">

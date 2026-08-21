@@ -47,7 +47,7 @@ export default function PartnerGenbaDetailPage() {
     { id: "photos", label: "写真・報告", icon: Camera },
   ] as const;
 
-  usePageHeader(genba?.property_name ?? null, genba?.address ?? null);
+  usePageHeader(genba?.property_name ?? null, genba?.address ?? null, Building2);
 
   return (
     <div className="flex flex-col gap-6">

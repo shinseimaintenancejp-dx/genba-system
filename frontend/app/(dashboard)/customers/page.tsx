@@ -28,7 +28,7 @@ import {
   Check,
   Building,
   Info
-} from "lucide-react";
+, Users } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,7 +62,7 @@ type CustomerFormValues = z.infer<typeof customerSchema>;
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function CustomersPage() {
-  usePageHeader("取引先管理", "清掃業務等を依頼する顧客・取引先の情報を管理します。");
+  usePageHeader("取引先管理", "清掃業務等を依頼する顧客・取引先の情報を管理します。", Users);
   const { data: currentUser } = useCurrentUser();
   const [search, setSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);

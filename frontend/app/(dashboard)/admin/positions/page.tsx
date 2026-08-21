@@ -18,6 +18,7 @@ import {
   Loader2,
   PencilLine,
   Trash2,
+  ShieldCheck
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
@@ -36,7 +37,7 @@ const CreatePositionDialog: React.FC<CreateDialogProps> = ({ onClose }) => {
   const { mutate: createPosition, isPending } = useCreatePosition();
 
   const handleSubmit = (e: React.FormEvent) => {
-  usePageHeader("役職管理", "システムで使用する役職（マスターデータ）の登録・編集を行います。");
+  usePageHeader("役職管理", "システムで使用する役職（マスターデータ）の登録・編集を行います。", ShieldCheck);
     e.preventDefault();
     setError(null);
     createPosition(formData, {

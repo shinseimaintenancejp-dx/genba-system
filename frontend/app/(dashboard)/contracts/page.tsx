@@ -17,13 +17,13 @@ import { DailyContractForm } from "@/components/contracts/DailyContractForm";
 import { PeriodicContractForm } from "@/components/contracts/PeriodicContractForm";
 import { OtherContractForm } from "@/components/contracts/OtherContractForm";
 import { mapContractToDefaultValues } from "@/lib/contractMapper";
-import { Plus, Eye, PencilLine, Search, X, ShieldAlert, Loader2 } from "lucide-react";
+import { Plus, Eye, PencilLine, Search, X, ShieldAlert, Loader2 , FileText } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import type { Contract } from "@/types/contract";
 
 export default function ContractsPage() {
-  usePageHeader("契約管理", "取引先との元請契約や協力会社への下請契約を管理します。");
+  usePageHeader("契約管理", "取引先との元請契約や協力会社への下請契約を管理します。", FileText);
   const { data: currentUser } = useCurrentUser();
   const canWrite = currentUser && ["ADMIN", "SENIOR_STAFF", "INTERNAL_STAFF"].includes(currentUser.role);
 

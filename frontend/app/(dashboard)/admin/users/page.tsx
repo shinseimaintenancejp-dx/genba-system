@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   PencilLine,
   Trash2,
+  Users
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
@@ -557,7 +558,7 @@ function DeleteConfirmDialog({ user, onClose, onConfirm, isDeleting }: DeleteCon
 
 export default function AdminUsersPage() {
   const { data, isLoading, error } = useUsers();
-  usePageHeader("ユーザー管理", `${data?.total ?? 0}名のユーザー`);
+  usePageHeader("ユーザー管理", `${data?.total ?? 0}名のユーザー`, Users);
   const deleteUser = useDeleteUser();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);

@@ -9,11 +9,11 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useStaffList } from "@/hooks/useStaff";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import type { ContractWithRelations } from "@/types/contract";
-import { Search, Eye, Check, ChevronDown, Calendar, Layers, AlertTriangle, X, ExternalLink } from "lucide-react";
+import { Search, Eye, Check, ChevronDown, Calendar, Layers, AlertTriangle, X, ExternalLink , Building2 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
 export default function PeriodicGenbaListPage() {
-  usePageHeader("定期現場一覧表", "定期契約がある現場・作業の一覧を表示・管理します。");
+  usePageHeader("定期現場一覧表", "定期契約がある現場・作業の一覧を表示・管理します。", Building2);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

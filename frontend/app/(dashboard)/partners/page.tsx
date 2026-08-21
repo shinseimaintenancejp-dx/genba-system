@@ -22,6 +22,7 @@ import {
   Loader2,
   Building,
   Info,
+  Briefcase
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useForm } from "react-hook-form";
@@ -47,7 +48,7 @@ const partnerSchema = z.object({
 type PartnerFormValues = z.infer<typeof partnerSchema>;
 
 export default function PartnersPage() {
-  usePageHeader("協力会社管理", "清掃業務等を委託する協力会社（パートナー）の情報を管理します。");
+  usePageHeader("協力会社管理", "清掃業務等を委託する協力会社（パートナー）の情報を管理します。", Briefcase);
   const { data: currentUser } = useCurrentUser();
   const [search, setSearch] = useState("");
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);

@@ -3,7 +3,7 @@ import { usePageHeader } from "@/hooks/usePageHeader";
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle, XCircle, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Loader2 , CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { ApprovalBadge } from '@/components/common/ApprovalBadge';
@@ -39,7 +39,7 @@ async function fetchApprovals(): Promise<ApprovalRequest[]> {
 }
 
 export default function ApprovalsPage() {
-  usePageHeader("承認待ち一覧", "担当者から申請された見積書・請求書の承認・却下を行います。");
+  usePageHeader("承認待ち一覧", "担当者から申請された見積書・請求書の承認・却下を行います。", CheckSquare);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const { data: approvals = [], isLoading } = useQuery({

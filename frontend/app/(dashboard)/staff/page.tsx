@@ -4,7 +4,7 @@ import { usePageHeader } from "@/hooks/usePageHeader";
 import React, { useState } from "react";
 import { useStaffList, useCreateStaff, useUpdateStaff, type Staff } from "@/hooks/useStaff";
 import { DataTable, type Column } from "@/components/common/DataTable";
-import { Plus, Search, Edit2, X, Loader2 } from "lucide-react";
+import { Plus, Search, Edit2, X, Loader2 , Users } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,7 +21,7 @@ const staffSchema = z.object({
 type StaffFormValues = z.infer<typeof staffSchema>;
 
 export default function StaffPage() {
-  usePageHeader("社内担当者管理", "社内の管理スタッフ・責任者の連絡先を登録・編集します。");
+  usePageHeader("社内担当者管理", "社内の管理スタッフ・責任者の連絡先を登録・編集します。", Users);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [modalState, setModalState] = useState<{ open: boolean; staff?: Staff } | null>(null);

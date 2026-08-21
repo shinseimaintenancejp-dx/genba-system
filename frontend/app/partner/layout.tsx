@@ -94,13 +94,20 @@ function PartnerSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
 
 function PartnerHeader() {
   const { mutate: logout } = useLogout();
-  const { title, description } = useHeaderStore();
+  const { title, description, icon: Icon } = useHeaderStore();
   
   return (
     <header className="flex h-auto min-h-16 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-      <div className="flex flex-col justify-center">
-        {title && <h1 className="text-xl font-bold text-slate-900 leading-tight">{title}</h1>}
-        {description && <div className="text-sm text-slate-500 mt-1">{description}</div>}
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
+        <div className="flex flex-col justify-center">
+          {title && <h1 className="text-xl font-bold text-slate-900 leading-tight">{title}</h1>}
+          {description && <div className="text-sm text-slate-500 mt-1">{description}</div>}
+        </div>
       </div>
       <div className="flex items-center gap-4">
         <button

@@ -9,10 +9,10 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useStaffList } from "@/hooks/useStaff";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import type { Genba } from "@/types/genba";
-import { Plus, Search, Eye, Check, ChevronDown } from "lucide-react";
+import { Plus, Search, Eye, Check, ChevronDown , Building2 } from "lucide-react";
 
 export default function GenbaListPage() {
-  usePageHeader("現場一覧表", "登録されている現場の一覧を表示・編集します。");
+  usePageHeader("現場一覧表", "登録されている現場の一覧を表示・編集します。", Building2);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

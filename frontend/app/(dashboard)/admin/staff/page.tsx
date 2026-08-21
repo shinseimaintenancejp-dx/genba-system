@@ -19,6 +19,7 @@ import {
   PencilLine,
   Trash2,
   ChevronDown,
+  ShieldCheck
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
@@ -40,7 +41,7 @@ const MultiSelectPositions: React.FC<MultiSelectPositionsProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-  usePageHeader("従業員管理", "自社スタッフ（担当者）の登録・編集を行います。");
+  usePageHeader("従業員管理", "自社スタッフ（担当者）の登録・編集を行います。", ShieldCheck);
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }

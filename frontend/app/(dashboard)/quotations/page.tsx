@@ -3,7 +3,7 @@ import { usePageHeader } from "@/hooks/usePageHeader";
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FilePlus, Search } from 'lucide-react';
+import { FilePlus, Search , FileText } from 'lucide-react';
 
 import { QuotationTable } from '@/components/finance/QuotationTable';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,7 @@ async function fetchQuotations(): Promise<Quotation[]> {
 }
 
 export default function QuotationsPage() {
-  usePageHeader("見積管理", "顧客向けの見積書を作成・管理します。");
+  usePageHeader("見積管理", "顧客向けの見積書を作成・管理します。", FileText);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: quotations = [], isLoading } = useQuery({

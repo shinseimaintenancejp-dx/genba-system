@@ -7,10 +7,10 @@ import { useGenbaList } from "@/hooks/useGenba";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { formatDateJST } from "@/lib/utils";
 import type { Genba } from "@/types/genba";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye , Building2 } from "lucide-react";
 
 export default function PartnerGenbaListPage() {
-  usePageHeader("担当現場一覧", "担当している現場の一覧を表示します。");
+  usePageHeader("担当現場一覧", "担当している現場の一覧を表示します。", Building2);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("ACTIVE");
   const [page, setPage] = useState(1);

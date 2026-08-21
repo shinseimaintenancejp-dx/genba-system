@@ -40,7 +40,8 @@ export default function GenbaDetailLayout({
         </span>
         <span>取引先: {genba.customer.full_name}</span>
       </div>
-    ) : null
+    ) : null,
+    Building2
   );
 
   // Define tabs list

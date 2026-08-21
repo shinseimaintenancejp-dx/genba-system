@@ -3,7 +3,7 @@ import { usePageHeader } from "@/hooks/usePageHeader";
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FilePlus, Search } from 'lucide-react';
+import { FilePlus, Search , Receipt } from 'lucide-react';
 
 import { InvoiceTable } from '@/components/finance/InvoiceTable';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ async function fetchInvoices(): Promise<Invoice[]> {
 }
 
 export default function InvoicesPage() {
-  usePageHeader("請求管理", "顧客への請求書発行および入金状況を管理します。");
+  usePageHeader("請求管理", "顧客への請求書発行および入金状況を管理します。", Receipt);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: invoices = [], isLoading } = useQuery({
