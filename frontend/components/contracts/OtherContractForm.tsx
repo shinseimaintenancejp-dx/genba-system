@@ -293,9 +293,15 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
     }
   }, [selectedReceivingContractId, assignmentType, selectedItems, contractType, methods, otherReceivingContracts, selectedReceivingContractDetail]);
 
+  const lastAutofilledContractId = React.useRef<string | null>(null);
+
   // When selectedReceivingContractId changes, auto-fill main form (create mode only)
   useEffect(() => {
     if (selectedReceivingContractDetail && !isEditMode) {
+      if (lastAutofilledContractId.current === selectedReceivingContractDetail.id) {
+        return; // Already autofilled for this receiving contract, do not overwrite user edits
+      }
+
       const d = selectedReceivingContractDetail;
       
       // 1. Auto fill Contract Name
@@ -332,6 +338,9 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
       if (d.end_date && !methods.getValues("endDate")) {
         methods.setValue("endDate", d.end_date);
       }
+
+      // Mark as autofilled for this contract
+      lastAutofilledContractId.current = d.id;
     }
   }, [selectedReceivingContractDetail, isEditMode, methods]);
 
@@ -804,7 +813,7 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
                       );
                     } else if (currentAmt > Number(rcAmt) * 0.85) {
                       return (
-                        <p className="text-xs font-semibold text-orange-500 mt-1">
+                        <p className="text-xs font-semibold text-red-500 mt-1">
                           ※ 委託金額が元請契約の金額の85%を超えています。
                         </p>
                       );
