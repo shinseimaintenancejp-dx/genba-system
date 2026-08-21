@@ -176,13 +176,7 @@ const { data: contractsData, isLoading: isLoadingContracts } = useContracts({
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <Briefcase className="h-5 w-5 text-amber-600" />
-          </div>
-          
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
         {canWrite && (
           <button
             onClick={() => {
