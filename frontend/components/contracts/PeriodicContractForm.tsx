@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { PeriodicScheduleEditor } from "./PeriodicScheduleEditor";
 import { HolidayRuleEditor } from "./HolidayRuleEditor";
 import { PeriodicWorkContentEditor } from "./PeriodicWorkContentEditor";
-import { useCreateContract, useUpdateContract, useCancelContractWithLinks, useContractDetail, useDeleteContract } from "@/hooks/useContracts";
+import { useCreateContract, useUpdateContract, useCancelContractWithLinks, useScheduleCancel, useContractDetail, useDeleteContract } from "@/hooks/useContracts";
 import { useGenbaList, useGenbaDetail } from "@/hooks/useGenba";
 import { usePartners } from "@/hooks/usePartners";
 import { useAvailableReceivingContractsByGenba } from "@/hooks/useOrderingLinks";
@@ -117,41 +117,27 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
   const { data: genbaData, isLoading: isLoadingGenba } = useGenbaList({ limit: 1000, customer_id: selectedCustomerId || undefined });
   const { data: partnerData, isLoading: isLoadingPartners } = usePartners({ limit: 200 });
 
-  const handleConfirmCancel = () => {
-    if (!cancelEndDate) {
-      setCancelError("終了日を入力してください");
-      return;
-    }
+  const handleConfirmCancel = (cancellationDate: string, reason?: string) => {
     if (!defaultValues?.id) return;
 
     setIsCancelling(true);
     setCancelError("");
-    const contractType = methods.getValues("contractType") || (defaultValues as any)?.contractType;
     
     const successCb = () => {
-      setIsCancelModalOpen(false);
+      setIsLinkedWarningModalOpen(false);
+      setIsPartnerWarningModalOpen(false);
       setIsCancelling(false);
       if (onSuccess) onSuccess();
     };
     const errorCb = (err: any) => {
-      setCancelError(err?.message || "解約処理に失敗しました");
+      setCancelError(err?.response?.data?.detail || err?.message || "解約処理に失敗しました");
       setIsCancelling(false);
     };
 
-    if (contractType === "RECEIVING") {
-      cancelWithLinksAsync(
-        { id: defaultValues.id, endDate: cancelEndDate },
-        { onSuccess: successCb, onError: errorCb }
-      );
-    } else {
-      updateContract(
-        {
-          id: defaultValues.id,
-          data: { status: "CANCELLED", endDate: cancelEndDate } as any,
-        },
-        { onSuccess: successCb, onError: errorCb }
-      );
-    }
+    scheduleCancelAsync(
+      { id: defaultValues.id, cancellation_date: cancellationDate, reason },
+      { onSuccess: successCb, onError: errorCb }
+    );
   };
 
   const handleConfirmDiscard = () => {
@@ -215,6 +201,7 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
   const { mutate: createContract, isPending: isCreating } = useCreateContract();
   const { mutate: updateContract, isPending: isUpdating } = useUpdateContract();
   const { mutateAsync: cancelWithLinksAsync, isPending: isCancellingLinks } = useCancelContractWithLinks();
+  const { mutateAsync: scheduleCancelAsync, isPending: isScheduleCancelling } = useScheduleCancel();
   const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
   const queryClient = useQueryClient();
   const isPending = isCreating || isUpdating || isDeleting || isCancellingLinks;
@@ -1257,10 +1244,11 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
       <LinkedContractsCancelWarningModal
         isOpen={isLinkedWarningModalOpen}
         onClose={() => setIsLinkedWarningModalOpen(false)}
-        onConfirm={() => {
+        onConfirm={(cancellationDate, reason) => {
           setIsLinkedWarningModalOpen(false);
-          setIsCancelModalOpen(true);
+          handleConfirmCancel(cancellationDate, reason);
         }}
+        isLoading={isCancelling}
         receivingContractId={(defaultValues as any)?.id}
       />
 
@@ -1268,65 +1256,16 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
       <PartnerContractsCancelWarningModal
         isOpen={isPartnerWarningModalOpen}
         onClose={() => setIsPartnerWarningModalOpen(false)}
-        onConfirm={() => {
+        onConfirm={(cancellationDate, reason) => {
           setIsPartnerWarningModalOpen(false);
-          setIsCancelModalOpen(true);
+          handleConfirmCancel(cancellationDate, reason);
         }}
+        isLoading={isCancelling}
         partnerId={(defaultValues as any)?.partnerId}
         currentContractId={(defaultValues as any)?.id}
       />
 
-      {/* Cancel Contract Confirmation Dialog */}
-      <Dialog.Root open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[95vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-2xl p-6">
-            <Dialog.Title className="text-xl font-bold text-slate-900 mb-2">
-              契約の解約手続き
-            </Dialog.Title>
-            <Dialog.Description className="text-sm text-slate-600 mb-4">
-              この契約を「解約」状態に変更します。終了日（解約日）を入力してください。
-            </Dialog.Description>
-
-            <div className="space-y-2 mb-6">
-              <label className="block text-sm font-semibold text-slate-700">
-                終了日（解約日） <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                min={minCancelDate}
-                value={cancelEndDate}
-                onChange={(e) => {
-                  setCancelEndDate(e.target.value);
-                  setCancelError("");
-                }}
-                className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
-              />
-              {cancelError && <p className="text-xs text-red-500 font-medium">{cancelError}</p>}
-            </div>
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsCancelModalOpen(false)}
-                disabled={isCancelling}
-                className="h-[52px] sm:h-10 rounded-lg border border-slate-200 bg-white px-4 text-base sm:text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCancel}
-                disabled={isCancelling}
-                className="inline-flex items-center justify-center gap-2 h-[52px] sm:h-10 rounded-lg bg-[#F83B3B] px-4 text-base sm:text-sm font-medium text-white hover:bg-[#E51E1E] disabled:opacity-60 transition-colors shadow-sm"
-              >
-                {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                <span>{isCancelling ? "処理中..." : "解約確定"}</span>
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {/* Cancel dialog removed — date is now selected inside LinkedContractsCancelWarningModal / PartnerContractsCancelWarningModal */}
 
       {/* Discard Draft Confirmation Dialog */}
       <Dialog.Root open={isDiscardModalOpen} onOpenChange={setIsDiscardModalOpen}>

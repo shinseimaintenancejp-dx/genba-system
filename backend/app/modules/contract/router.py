@@ -25,6 +25,9 @@ from app.modules.contract.schemas import (
     OrderingLinkCreate,
     OrderingLinkResponse,
     OrderingLinkUpdate,
+    ScheduleCancelPayload,
+    ScheduleCancelResponse,
+    UndoCancelResponse,
 )
 from app.modules.contract.service import contract_service
 from app.modules.contract.report_repository import ReportRepository
@@ -66,6 +69,37 @@ async def cancel_contract_with_links(
 ) -> dict:
     """Cancel a receiving contract and all its linked ordering contracts."""
     return await contract_service.cancel_contract_with_links(db, id, payload.end_date, current_user["id"])
+
+
+@router.post(
+    "/{id}/schedule-cancel",
+    response_model=ScheduleCancelResponse,
+    dependencies=[Depends(require_permission(Permission.CONTRACT_WRITE))],
+)
+async def schedule_cancel_contract(
+    id: uuid.UUID,
+    payload: ScheduleCancelPayload,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> dict:
+    """Schedule a future-dated cancellation for a contract and its linked ordering contracts."""
+    return await contract_service.schedule_cancel(
+        db, id, payload.cancellation_date, payload.reason, current_user["id"]
+    )
+
+
+@router.post(
+    "/{id}/undo-cancel",
+    response_model=UndoCancelResponse,
+    dependencies=[Depends(require_permission(Permission.CONTRACT_WRITE))],
+)
+async def undo_schedule_cancel(
+    id: uuid.UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> dict:
+    """Undo a pending scheduled cancellation. Only works if the scheduled date has not yet passed."""
+    return await contract_service.undo_cancel(db, id, current_user["id"])
 
 @router.get(
     "/reports/profit",

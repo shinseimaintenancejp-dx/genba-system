@@ -308,3 +308,46 @@ export const useCancelContractWithLinks = () => {
   });
 };
 
+export const useScheduleCancel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      cancellation_date,
+      reason,
+    }: {
+      id: string;
+      cancellation_date: string;
+      reason?: string | null;
+    }) =>
+      post(`/contracts/${id}/schedule-cancel`, { cancellation_date, reason }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.history(id) });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    },
+    onError: (error: any) => {
+      throw error;
+    },
+  });
+};
+
+export const useUndoCancel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) =>
+      post(`/contracts/${id}/undo-cancel`, {}),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.history(id) });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    },
+    onError: (error: any) => {
+      throw error;
+    },
+  });
+};

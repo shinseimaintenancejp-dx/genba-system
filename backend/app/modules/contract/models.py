@@ -47,6 +47,11 @@ class ContractModel(Base):
 
     status: Mapped[str] = mapped_column(String(20), default="DRAFT", server_default="DRAFT", nullable=False)
 
+    # Scheduled cancellation (future-dated cancel)
+    scheduled_cancellation_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cancellation_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Sprint 5: Contract name and service categorization
     contract_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     service_category: Mapped[str] = mapped_column(

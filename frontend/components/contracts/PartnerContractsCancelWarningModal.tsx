@@ -1,14 +1,17 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle, Clock } from "lucide-react";
 import { useContracts } from "@/hooks/useContracts";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  /** Called with the chosen cancellation date (YYYY-MM-DD) and optional reason */
+  onConfirm: (cancellationDate: string, reason?: string) => void;
   partnerId?: string;
   currentContractId: string;
+  isLoading?: boolean;
 }
 
 export const PartnerContractsCancelWarningModal: React.FC<Props> = ({
@@ -17,25 +20,35 @@ export const PartnerContractsCancelWarningModal: React.FC<Props> = ({
   onConfirm,
   partnerId,
   currentContractId,
+  isLoading: externalLoading = false,
 }) => {
-  const { data, isLoading } = useContracts({
-    partner_id: partnerId || undefined,
-    limit: 100,
-  }, {
-    enabled: isOpen && !!partnerId
-  });
+  const today = new Date().toISOString().slice(0, 10);
+  const [cancellationDate, setCancellationDate] = useState<string>(today);
+  const [reason, setReason] = useState<string>("");
+
+  const { data, isLoading: contractsLoading } = useContracts(
+    { partner_id: partnerId || undefined, limit: 100 },
+    { enabled: isOpen && !!partnerId }
+  );
+
+  const isFuture = cancellationDate > today;
+  const isLoading = externalLoading || contractsLoading;
 
   if (!isOpen) return null;
 
-  const otherContracts = data?.items?.filter(
-    (c) => c.id !== currentContractId && c.status !== "CANCELLED"
-  ) || [];
+  const otherContracts =
+    data?.items?.filter(
+      (c) => c.id !== currentContractId && c.status !== "CANCELLED"
+    ) || [];
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100]" />
-        <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl z-[101]">
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="fixed left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl z-[101]"
+        >
           <div className="flex items-center justify-between mb-5">
             <Dialog.Title className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <AlertCircle className="w-6 h-6 text-[#F83B3B]" />
@@ -56,7 +69,7 @@ export const PartnerContractsCancelWarningModal: React.FC<Props> = ({
               この契約を解約してもよろしいですか？
             </p>
 
-            {isLoading ? (
+            {contractsLoading ? (
               <p className="text-sm text-slate-500">データを読み込み中...</p>
             ) : otherContracts.length > 0 ? (
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
@@ -76,22 +89,63 @@ export const PartnerContractsCancelWarningModal: React.FC<Props> = ({
                 （この協力会社との他の契約はありません）
               </p>
             )}
+
+            {/* Cancellation date picker */}
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-slate-700">
+                解約有効日 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={cancellationDate}
+                min={today}
+                onChange={(e) => setCancellationDate(e.target.value)}
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
+              />
+            </div>
+
+            {/* Reason */}
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-slate-700">
+                解約理由
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                placeholder="解約理由を入力してください（任意）"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all resize-none"
+              />
+            </div>
+
+            {/* Future-date warning */}
+            {isFuture && (
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  選択した日付まで契約は<strong>有効のまま</strong>
+                  維持されます。選択日以降の請求書は即時無効化されます。自動更新も停止されます。
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="mt-8 flex items-center justify-end gap-3">
+          <div className="mt-6 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="h-10 px-4 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              disabled={isLoading}
+              className="h-10 px-4 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
               キャンセル
             </button>
             <button
               type="button"
-              onClick={onConfirm}
-              className="h-10 px-4 rounded-lg bg-[#F83B3B] text-white text-sm font-semibold hover:bg-[#E51E1E] transition-colors"
+              onClick={() => onConfirm(cancellationDate, reason || undefined)}
+              disabled={isLoading || !cancellationDate}
+              className="h-10 px-4 rounded-lg bg-[#F83B3B] text-white text-sm font-semibold hover:bg-[#E51E1E] transition-colors disabled:opacity-50"
             >
-              OK
+              {isFuture ? "解約予定" : "解約"}
             </button>
           </div>
         </Dialog.Content>

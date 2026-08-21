@@ -81,6 +81,29 @@ export interface Contract {
   created_by?: string;
   created_at: string;
   updated_at: string;
+
+  // Scheduled cancellation
+  scheduled_cancellation_date?: string | null;
+  cancellation_reason?: string | null;
+  cancellation_requested_at?: string | null;
+}
+
+export interface ScheduleCancelPayload {
+  cancellation_date: string; // YYYY-MM-DD
+  reason?: string | null;
+}
+
+export interface ScheduleCancelResponse {
+  status: string;
+  scheduled_cancellation_date: string;
+  cancelled_ordering_count: number;
+  cancelled_invoices_count: number;
+}
+
+export interface UndoCancelResponse {
+  status: string;
+  restored_invoices_count: number;
+  restored_ordering_count: number;
 }
 
 // =============================================================================

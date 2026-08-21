@@ -267,6 +267,27 @@ class _MinimalPartner(BaseModel):
 class CancelWithLinksPayload(BaseModel):
     end_date: date = Field(..., description="Date of cancellation")
 
+
+class ScheduleCancelPayload(BaseModel):
+    """Payload for scheduling a future-dated contract cancellation."""
+    cancellation_date: date = Field(..., description="The date on which the contract should be cancelled")
+    reason: str | None = Field(default=None, description="Reason for cancellation")
+
+
+class ScheduleCancelResponse(BaseModel):
+    """Response when a contract is scheduled for cancellation."""
+    status: str
+    scheduled_cancellation_date: date
+    cancelled_ordering_count: int
+    cancelled_invoices_count: int
+
+
+class UndoCancelResponse(BaseModel):
+    """Response when a scheduled cancellation is undone."""
+    status: str
+    restored_invoices_count: int
+    restored_ordering_count: int
+
 class LinkedOrderingContractResponse(BaseModel):
     id: uuid.UUID
     contract_name: str
@@ -306,6 +327,11 @@ class ContractResponse(ContractBase):
     sub_service_type: str | None = None
     work_execution_date: date | None = None
     work_content_summary: str | None = None
+
+    # Scheduled cancellation fields
+    scheduled_cancellation_date: date | None = None
+    cancellation_reason: str | None = None
+    cancellation_requested_at: datetime | None = None
 
     # Sprint 11: DB-04 Nested relations
     work_slots: list[WorkSlotResponse] | None = None

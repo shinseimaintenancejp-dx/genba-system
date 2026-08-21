@@ -6,6 +6,7 @@ import uuid
 from datetime import date, datetime, timezone
 
 from sqlalchemy import DECIMAL, Boolean, Date, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -41,6 +42,17 @@ class InvoiceModel(Base):
     attachment_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     
     contract_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contracts.id"), nullable=False)
+
+    # Tracks if this invoice was soft-cancelled by a scheduled cancellation.
+    # NULL = cancelled by other means (or not cancelled).
+    # Non-NULL = the contract_id of the schedule_cancel that caused this.
+    # Used by undo_cancel() to restore only the records it touched.
+    cancelled_by_scheduled_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("contracts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     
     confirmed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

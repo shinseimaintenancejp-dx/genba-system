@@ -15,6 +15,7 @@ from datetime import datetime, time, date
 from decimal import Decimal
 
 from sqlalchemy import select
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_service
@@ -138,6 +139,265 @@ class ContractService:
         await db.commit()
         
         return {"status": "success", "cancelled_ordering_contracts_count": len(ordering_ids)}
+
+    async def schedule_cancel(
+        self,
+        db: AsyncSession,
+        contract_id: uuid.UUID,
+        cancellation_date: date,
+        reason: str | None,
+        current_user_id: uuid.UUID,
+    ) -> dict:
+        """
+        Schedule a future-dated contract cancellation.
+
+        - If cancellation_date <= today: immediately cancel via existing logic.
+        - If cancellation_date > today:
+            1. Mark contract with scheduled_cancellation_date, auto_renew=False.
+            2. Soft-cancel future invoices (billing > cancellation month) by marking
+               cancelled_by_scheduled_id = contract_id.
+            3. Cascade to linked ordering contracts.
+        """
+        from app.modules.contract.models import ContractModel, ContractOrderingLinkModel
+        from app.modules.invoice.models import InvoiceModel
+        from sqlalchemy import select, update
+        from fastapi import HTTPException
+        from datetime import date as date_type, datetime, timezone
+
+        today = date_type.today()
+
+        # Fetch main contract
+        main_contract = await ContractRepository.get_by_id(db, contract_id)
+        if not main_contract:
+            raise HTTPException(status_code=404, detail="契約が見つかりません。")
+
+        if main_contract.status == "CANCELLED":
+            raise HTTPException(status_code=400, detail="この契約は既に解約されています。")
+
+        if main_contract.scheduled_cancellation_date is not None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"この契約は既に {main_contract.scheduled_cancellation_date} に解約予定です。先に解約予定をキャンセルしてください。",
+            )
+
+        if main_contract.start_date > cancellation_date:
+            raise HTTPException(status_code=400, detail="解約日は契約開始日以降の日付を指定してください。")
+
+        # If today or past → immediate cancel via existing logic
+        if cancellation_date <= today:
+            result = await self.cancel_contract_with_links(db, contract_id, cancellation_date, current_user_id)
+            return {
+                "status": "success",
+                "scheduled_cancellation_date": cancellation_date,
+                "cancelled_ordering_count": result.get("cancelled_ordering_contracts_count", 0),
+                "cancelled_invoices_count": 0,
+                "immediate": True,
+            }
+
+        # Future-dated: update the main contract
+        await db.execute(
+            update(ContractModel)
+            .where(ContractModel.id == contract_id)
+            .values(
+                scheduled_cancellation_date=cancellation_date,
+                cancellation_reason=reason,
+                cancellation_requested_at=datetime.now(timezone.utc),
+                auto_renew=False,
+            )
+        )
+
+        # Soft-cancel invoices with billing_period AFTER the cancellation month
+        # (invoices in the same month as cancellation_date are kept — Phương án A)
+        cancel_year = cancellation_date.year
+        cancel_month = cancellation_date.month
+
+        invoice_result = await db.execute(
+            update(InvoiceModel)
+            .where(
+                InvoiceModel.contract_id == contract_id,
+                InvoiceModel.status.not_in(["CANCELLED", "PAID"]),
+                InvoiceModel.cancelled_by_scheduled_id.is_(None),
+                # Only future months (strictly after cancellation month)
+                sa.or_(
+                    InvoiceModel.billing_period_year > cancel_year,
+                    sa.and_(
+                        InvoiceModel.billing_period_year == cancel_year,
+                        InvoiceModel.billing_period_month > cancel_month,
+                    ),
+                ),
+            )
+            .values(
+                status="CANCELLED",
+                cancelled_by_scheduled_id=contract_id,
+            )
+            .returning(InvoiceModel.id)
+        )
+        cancelled_invoice_ids = invoice_result.scalars().all()
+
+        # Cascade to ordering contracts
+        ordering_result = await db.execute(
+            select(ContractOrderingLinkModel.ordering_contract_id).where(
+                ContractOrderingLinkModel.receiving_contract_id == contract_id
+            )
+        )
+        ordering_ids = ordering_result.scalars().all()
+
+        cascade_invoice_count = 0
+        for oid in ordering_ids:
+            ordering_contract = await ContractRepository.get_by_id(db, oid)
+            if not ordering_contract or ordering_contract.status == "CANCELLED":
+                continue
+
+            await db.execute(
+                update(ContractModel)
+                .where(ContractModel.id == oid)
+                .values(
+                    scheduled_cancellation_date=cancellation_date,
+                    cancellation_reason=reason,
+                    cancellation_requested_at=datetime.now(timezone.utc),
+                    auto_renew=False,
+                )
+            )
+
+            # Soft-cancel future invoices for ordering contracts too
+            oid_invoice_result = await db.execute(
+                update(InvoiceModel)
+                .where(
+                    InvoiceModel.contract_id == oid,
+                    InvoiceModel.status.not_in(["CANCELLED", "PAID"]),
+                    InvoiceModel.cancelled_by_scheduled_id.is_(None),
+                    sa.or_(
+                        InvoiceModel.billing_period_year > cancel_year,
+                        sa.and_(
+                            InvoiceModel.billing_period_year == cancel_year,
+                            InvoiceModel.billing_period_month > cancel_month,
+                        ),
+                    ),
+                )
+                .values(
+                    status="CANCELLED",
+                    cancelled_by_scheduled_id=oid,
+                )
+                .returning(InvoiceModel.id)
+            )
+            cascade_invoice_count += len(oid_invoice_result.scalars().all())
+
+        await db.commit()
+
+        return {
+            "status": "success",
+            "scheduled_cancellation_date": cancellation_date,
+            "cancelled_ordering_count": len(ordering_ids),
+            "cancelled_invoices_count": len(cancelled_invoice_ids) + cascade_invoice_count,
+        }
+
+    async def undo_cancel(
+        self,
+        db: AsyncSession,
+        contract_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+    ) -> dict:
+        """
+        Undo a scheduled cancellation.
+
+        Safe because we only restore invoices that have
+        cancelled_by_scheduled_id == contract_id (or linked ordering contract ids).
+        """
+        from app.modules.contract.models import ContractModel, ContractOrderingLinkModel
+        from app.modules.invoice.models import InvoiceModel
+        from sqlalchemy import select, update
+        from fastapi import HTTPException
+        from datetime import date as date_type
+
+        today = date_type.today()
+
+        main_contract = await ContractRepository.get_by_id(db, contract_id)
+        if not main_contract:
+            raise HTTPException(status_code=404, detail="契約が見つかりません。")
+
+        if main_contract.scheduled_cancellation_date is None:
+            raise HTTPException(status_code=400, detail="この契約には解約予定がありません。")
+
+        if main_contract.scheduled_cancellation_date <= today:
+            raise HTTPException(
+                status_code=400,
+                detail="解約予定日が過去のため、解約のキャンセルはできません。",
+            )
+
+        # Restore ordering contracts first (cascade)
+        ordering_result = await db.execute(
+            select(ContractOrderingLinkModel.ordering_contract_id).where(
+                ContractOrderingLinkModel.receiving_contract_id == contract_id
+            )
+        )
+        ordering_ids = ordering_result.scalars().all()
+
+        restored_ordering = 0
+        restored_invoices = 0
+
+        for oid in ordering_ids:
+            ordering_contract = await ContractRepository.get_by_id(db, oid)
+            if not ordering_contract:
+                continue
+            if ordering_contract.scheduled_cancellation_date != main_contract.scheduled_cancellation_date:
+                continue  # was scheduled separately, do not undo
+
+            await db.execute(
+                update(ContractModel)
+                .where(ContractModel.id == oid)
+                .values(
+                    scheduled_cancellation_date=None,
+                    cancellation_reason=None,
+                    cancellation_requested_at=None,
+                    auto_renew=True,
+                )
+            )
+            restored_ordering += 1
+
+            # Restore invoices soft-cancelled by this ordering contract's scheduled cancel
+            inv_result = await db.execute(
+                update(InvoiceModel)
+                .where(InvoiceModel.cancelled_by_scheduled_id == oid)
+                .values(
+                    status="AUTO_GENERATED",
+                    cancelled_by_scheduled_id=None,
+                )
+                .returning(InvoiceModel.id)
+            )
+            restored_invoices += len(inv_result.scalars().all())
+
+        # Restore main contract
+        await db.execute(
+            update(ContractModel)
+            .where(ContractModel.id == contract_id)
+            .values(
+                scheduled_cancellation_date=None,
+                cancellation_reason=None,
+                cancellation_requested_at=None,
+                auto_renew=True,
+            )
+        )
+
+        # Restore invoices soft-cancelled by this contract's scheduled cancel
+        main_inv_result = await db.execute(
+            update(InvoiceModel)
+            .where(InvoiceModel.cancelled_by_scheduled_id == contract_id)
+            .values(
+                status="AUTO_GENERATED",
+                cancelled_by_scheduled_id=None,
+            )
+            .returning(InvoiceModel.id)
+        )
+        restored_invoices += len(main_inv_result.scalars().all())
+
+        await db.commit()
+
+        return {
+            "status": "success",
+            "restored_invoices_count": restored_invoices,
+            "restored_ordering_count": restored_ordering,
+        }
+
 
     async def list_contracts(
         self,
