@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
+import { queryKeys } from "@/hooks/queryKeys";
 import { History, User, Clock, ChevronDown, ChevronUp } from "lucide-react";
 
 // ============================================================================
@@ -149,7 +150,7 @@ function FieldDiffList({ fields }: { fields: ChangedField[] }) {
 // ============================================================================
 export function ContractHistoryTimeline({ contractId }: ContractHistoryTimelineProps) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["contracts", contractId, "history"],
+    queryKey: queryKeys.contracts.history(contractId),
     queryFn: () => get<HistoryResponse>(`/contracts/${contractId}/history`),
     enabled: !!contractId,
     // Refresh every 30s to pick up changes made by other users

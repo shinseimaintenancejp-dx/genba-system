@@ -232,6 +232,7 @@ export const useUpdateContract = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contracts.lists() });
       queryClient.invalidateQueries({ queryKey: queryKeys.contracts.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.history(variables.id) });
       if (data.genba_id) {
         queryClient.invalidateQueries({ queryKey: queryKeys.genba.contracts(data.genba_id) });
       }
@@ -270,6 +271,7 @@ export const useDeleteContract = () => {
     },
     onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contracts.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.history(deletedId) });
       // We don't have the genbaId directly, so we invalidate everything related to genba contracts
       queryClient.invalidateQueries({ queryKey: queryKeys.genba.all });
     },
@@ -295,6 +297,7 @@ export const useCancelContractWithLinks = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contracts", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.history(id) });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       
     },

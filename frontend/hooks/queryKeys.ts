@@ -135,6 +135,7 @@ export const queryKeys = {
     // Sub-resources
     orderingLinks: (id: string) => [...queryKeys.contracts.detail(id), "ordering-links"] as const,
     availableReceiving: (id: string) => [...queryKeys.contracts.detail(id), "available-receiving"] as const,
+    history: (id: string) => [...queryKeys.contracts.detail(id), "history"] as const,
   },
 
   // ---------------------------------------------------------------------------
