@@ -1,5 +1,5 @@
-import { usePageHeader } from "@/hooks/usePageHeader";
 'use client';
+import { usePageHeader } from "@/hooks/usePageHeader";
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
