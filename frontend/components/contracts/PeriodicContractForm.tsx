@@ -984,7 +984,7 @@ export const PeriodicContractForm: React.FC<PeriodicContractFormProps> = ({
                         const raw = e.target.value
                           .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
                           .replace(/[^0-9]/g, '');
-                        onChange(raw === '' ? undefined : Number(raw));
+                        onChange(raw === '' ? null : Number(raw));
                       }}
                       placeholder="0"
                       className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-8 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all text-right disabled:opacity-60 disabled:bg-slate-50 placeholder:text-slate-400"

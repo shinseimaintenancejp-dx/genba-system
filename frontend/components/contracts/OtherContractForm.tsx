@@ -788,7 +788,7 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
                         const raw = e.target.value
                           .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
                           .replace(/[^0-9]/g, '');
-                        onChange(raw === '' ? undefined : Number(raw));
+                        onChange(raw === '' ? null : Number(raw));
                       }}
                       className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-8 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all text-right placeholder:text-slate-400"
                     />
