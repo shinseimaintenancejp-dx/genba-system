@@ -78,6 +78,22 @@ const otherContractSchema = z.object({
 }, {
   message: "対象の受注契約を選択してください",
   path: ["orderingLinks"],
+}).refine(data => {
+  if (data.workExecutionDate && data.startDate) {
+    return new Date(data.workExecutionDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "作業実施日は開始日以降を指定してください",
+  path: ["workExecutionDate"],
+}).refine(data => {
+  if (data.workExecutionDate && data.endDate) {
+    return new Date(data.workExecutionDate) <= new Date(data.endDate);
+  }
+  return true;
+}, {
+  message: "作業実施日は終了日以前を指定してください",
+  path: ["workExecutionDate"],
 });
 
 type OtherContractFormValues = z.infer<typeof otherContractSchema>;
@@ -208,6 +224,7 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
   const [activeTab, setActiveTab] = useState("basic");
   const contractType = methods.watch("contractType");
   const startDate = methods.watch("startDate");
+  const endDate = methods.watch("endDate");
   const watchGenbaId = methods.watch("genbaId");
   const activeGenbaId = genbaId || watchGenbaId;
   const { data: genbaDetail } = useGenbaDetail(activeGenbaId);
@@ -921,6 +938,8 @@ export const OtherContractForm: React.FC<OtherContractFormProps> = ({
               <input
                 type="date"
                 {...methods.register("workExecutionDate")}
+                min={startDate || undefined}
+                max={endDate || undefined}
                 disabled={readOnly}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 transition-all"
               />
